@@ -1,4 +1,3 @@
-<?jelly escape-by-default='true'?>
 <div>
 	To configure GitLab, please go to "Configure system".
 </div>
