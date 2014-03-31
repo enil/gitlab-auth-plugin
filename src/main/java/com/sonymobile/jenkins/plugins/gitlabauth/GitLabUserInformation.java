@@ -6,41 +6,41 @@ import hudson.model.UserProperty;
 import hudson.model.UserPropertyDescriptor;
 
 public class GitLabUserInformation extends UserProperty {
-	private User mUser;
-	
-	public GitLabUserInformation(User user) {
-		/*
-		 * Should be a GitLabUser instead
-		 */
-		this.mUser = user;
-	}
-	
-	public String getUsername() {
-		return (mUser != null) ? mUser.getDisplayName() : "Anon";
-	}
-	
-	public String getFullname() {
-		return (mUser != null) ? mUser.getFullName() : this.getUsername();
-	}
-	
-	public String getEmail() {
-		return "Not available";
-	}
-	
-	@Extension
-	public static final class DescriptorImpl extends UserPropertyDescriptor {
+    private User mUser;
 
-		public String getDisplayName() {
-			return "GitLab user information";
-		}
+    public GitLabUserInformation(User user) {
+        /*
+         * Should be a GitLabUser instead
+         */
+        this.mUser = user;
+    }
 
-		@Override
-		public UserProperty newInstance(User user) {
-			return new GitLabUserInformation(user);
-		}
-		
-		public boolean isEnabled() {
-			return false;
-		}
-	}
+    public String getUsername() {
+        return (mUser != null) ? mUser.getDisplayName() : "Anon";
+    }
+
+    public String getFullname() {
+        return (mUser != null) ? mUser.getFullName() : this.getUsername();
+    }
+
+    public String getEmail() {
+        return "Not available";
+    }
+
+    @Extension
+    public static final class DescriptorImpl extends UserPropertyDescriptor {
+
+        public String getDisplayName() {
+            return "GitLab user information";
+        }
+
+        @Override
+        public UserProperty newInstance(User user) {
+            return new GitLabUserInformation(user);
+        }
+
+        public boolean isEnabled() {
+            return false;
+        }
+    }
 }
