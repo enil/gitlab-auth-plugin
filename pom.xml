@@ -6,7 +6,7 @@
     <version>1.509.4</version>
   </parent>
 
-  <groupId>com.sonymobile.jenkins.plugins.gitlabauth</groupId>
+  <groupId>com.sonymobile.jenkins.plugins</groupId>
   <artifactId>gitlab-auth</artifactId>
   <version>0.1-SNAPSHOT</version>
   <packaging>hpi</packaging>
@@ -31,6 +31,14 @@
       <organization>Sony Mobile Communications</organization>
     </developer>
   </developers>
+  
+  <dependencies>
+    <dependency>
+      <groupId>com.sonymobile.jenkins.plugins</groupId>
+      <artifactId>gitlab-api</artifactId>
+      <version>0.1-SNAPSHOT</version>
+    </dependency>
+  </dependencies>
 
   <repositories>
     <repository>
