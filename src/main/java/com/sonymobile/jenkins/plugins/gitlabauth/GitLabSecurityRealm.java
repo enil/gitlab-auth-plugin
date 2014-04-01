@@ -24,6 +24,7 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
 import org.acegisecurity.AuthenticationException;
@@ -35,6 +36,10 @@ import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.dao.DataAccessException;
+
+import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
+import com.sonymobile.gitlab.exceptions.ApiConnectionFailureException;
+import com.sonymobile.gitlab.exceptions.AuthenticationFailedException;
 
 import hudson.Extension;
 import hudson.model.Descriptor;
@@ -94,7 +99,18 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * @return true if there exist a user with username and a matching password
      */
     private boolean isValidUser(String username, String password) {
-        return username.equals("nisse") && password.equals("p2");
+        try {
+            GitLabConfig.getApiClient().getSession(username, password);
+            
+        } catch (ApiConnectionFailureException e) {
+            // Connection failure
+            return false;
+        } catch (AuthenticationFailedException e) {
+            // Authentication failure
+            return false;
+        }
+        
+        return true;
     }
     
     /**
