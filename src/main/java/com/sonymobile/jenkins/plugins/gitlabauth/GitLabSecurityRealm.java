@@ -52,7 +52,6 @@ import hudson.security.SecurityRealm;
  * 
  * @author Andreas Alanko
  */
-
 public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     @DataBoundConstructor

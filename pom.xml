@@ -38,6 +38,18 @@
       <artifactId>gitlab-api</artifactId>
       <version>0.1-SNAPSHOT</version>
     </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.11</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.tomakehurst</groupId>
+      <artifactId>wiremock</artifactId>
+      <version>1.45</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <repositories>
