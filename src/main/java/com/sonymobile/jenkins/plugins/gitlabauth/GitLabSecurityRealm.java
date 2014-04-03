@@ -24,7 +24,6 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
-import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
 import org.acegisecurity.AuthenticationException;
@@ -37,9 +36,9 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.dao.DataAccessException;
 
-import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
 import com.sonymobile.gitlab.exceptions.ApiConnectionFailureException;
 import com.sonymobile.gitlab.exceptions.AuthenticationFailedException;
+import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
 
 import hudson.Extension;
 import hudson.model.Descriptor;
@@ -62,6 +61,8 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
      * Specifies if the configured Security Realm allows signup.
      * 
+     * GitLabSecurityRealm will not allow signups through Jenkins.
+     * 
      * @return true if signup is allowed
      */
     @Override
@@ -74,7 +75,7 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * 
      * @param username the username of the user
      * @param password the password of the user
-     * @return a UserDetails object with user information.
+     * @return a UserDetails object with user information
      * @throws AuthenticationException if the authentication fails
      */
     @Override
@@ -128,11 +129,12 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     /**
      * This feature is not supported.
+     * 
      * Will throw UsernameNotFoundException at all times.
      * 
      * @params username the username of the user
-     * @throws UsernameNotFoundException will be thrown at all times.
-     * @throws DataAccessException will never be thrown.
+     * @throws UsernameNotFoundException will be thrown at all times
+     * @throws DataAccessException will never be thrown
      */
     @Override
     public GroupDetails loadGroupByGroupname(String groupname) throws UsernameNotFoundException, DataAccessException {
@@ -143,10 +145,10 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     public static final class DescriptorImpl extends Descriptor<SecurityRealm> {
 
         /**
-         * Returns a new GitLabSecurityRealm object
+         * Returns a new GitLabSecurityRealm object.
          * 
          * @param req the http request
-         * @param formData form data f
+         * @param formData form data
          * @return a GitLabSecurityRealm object
          */
         @Override
