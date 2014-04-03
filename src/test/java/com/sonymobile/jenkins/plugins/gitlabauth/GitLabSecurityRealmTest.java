@@ -25,22 +25,23 @@
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
+import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
 import com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabServerRule;
 import hudson.security.SecurityRealm;
 import jenkins.model.Jenkins;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import java.lang.Exception;
-
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabServerRule.INVALID_PASSWORD;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabServerRule.INVALID_USERNAME;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabServerRule.VALID_PASSWORD;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabServerRule.VALID_USERNAME;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat;
 
 /**
  * Unit tests for {@link GitLabSecurityRealm}.
@@ -51,10 +52,13 @@ import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabServerRule
  * @author Emil Nilsson
  */
 public class GitLabSecurityRealmTest {
+    /** The port to run the mocked GitLab server on. */
+    private final static int GITLAB_PORT = 9090;
+
     /** A rule for creating a Jenkins environment. */
     @Rule public JenkinsRule jenkinsRule = new JenkinsRule();
     /** A rule for a mocked GitLab server. */
-    @Rule public GitLabServerRule gitLabRule = new GitLabServerRule(9090);
+    @Rule public GitLabServerRule gitLabRule = new GitLabServerRule(GITLAB_PORT);
     /** A rule for catching expected exceptions. */
     @Rule public ExpectedException thrown = ExpectedException.none();
     /** The GitLab security realm to use. */
@@ -71,9 +75,11 @@ public class GitLabSecurityRealmTest {
     public void setUp() {
         jenkins = jenkinsRule.jenkins;
         webClient = jenkinsRule.createWebClient();
-        // use GitLab authentication
-        securityRealm = new GitLabSecurityRealm();
-        jenkins.setSecurityRealm(securityRealm);
+
+        // configure the GitLab API plugin
+        configureApi();
+        // configure GitLab authentication
+        configureSecurityRealm();
     }
 
     /**
@@ -81,13 +87,14 @@ public class GitLabSecurityRealmTest {
      *
      * @throws Exception if the Jenkins web client throws any unexpected exception
      */
-    @Ignore("GitLabServerRule not implemented yet")
     @Test
     public void authenticateWithValidCredentials() throws Exception {
         // make GitLab respond with a valid session
         gitLabRule.expectValidSessionRequest();
 
         webClient.login(VALID_USERNAME, VALID_PASSWORD);
+
+        assertThat("User should be logged in", jenkins.getAuthentication(), is(not(Jenkins.ANONYMOUS)));
     }
 
     /**
@@ -95,14 +102,33 @@ public class GitLabSecurityRealmTest {
      *
      * @throws Exception if the Jenkins web client throws any unexpected exception
      */
-    @Ignore("GitLabServerRule not implemented yet")
     @Test
     public void authenticateWithInvalidCredentials() throws Exception {
         // make GitLab respond with an error
         gitLabRule.expectInvalidSessionRequest();
-        // login should fail
+        // login should fail with HTTP 401 Unauthorized
         thrown.expect(FailingHttpStatusCodeException.class);
+        thrown.expectMessage("401");
 
         webClient.login(INVALID_USERNAME, INVALID_PASSWORD);
+    }
+
+    /**
+     * Configures the GitLab API plugin of the Jenkins instance.
+     */
+    private void configureApi() {
+        GitLabConfig config = jenkinsRule.get(GitLabConfig.class).getInstance();
+        config.setServerUrl("http://localhost:" + GITLAB_PORT);
+        // private token can be anything
+        config.setPrivateToken("private_token");
+    }
+
+    /**
+     * Configures the Jenkins instance to authenticate against GitLab.
+     */
+    private void configureSecurityRealm() {
+        // use GitLab authentication
+        securityRealm = new GitLabSecurityRealm();
+        jenkins.setSecurityRealm(securityRealm);
     }
 }

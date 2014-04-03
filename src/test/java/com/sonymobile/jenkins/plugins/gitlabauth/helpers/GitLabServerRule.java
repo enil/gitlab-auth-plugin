@@ -26,6 +26,12 @@ package com.sonymobile.jenkins.plugins.gitlabauth.helpers;
 
 import com.github.tomakehurst.wiremock.core.Options;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import org.json.JSONObject;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
 /**
  * A JUnit rule for mocking a GitLab API.
@@ -41,6 +47,23 @@ public class GitLabServerRule extends WireMockRule {
     public static final String VALID_PASSWORD = "foo";
     /** An invalid password expected by the server. */
     public static final String INVALID_PASSWORD = "bar";
+    /** The body of a request to /session with valid user credentials. */
+    private static final String VALID_SESSION_REQUEST_BODY =
+            String.format("login=%s&password=%s", VALID_USERNAME, VALID_PASSWORD);
+    /** The body of a request to /session with invalid user credentials. */
+    private static final String INVALID_SESSION_REQUEST_BODY =
+            String.format("login=%s&password=%s", INVALID_USERNAME, INVALID_PASSWORD);
+    /** The JSON response of a valid request to /session. */
+    public static final JSONObject VALID_RESPONSE_OBJECT = new JSONObject();
+    static {
+        VALID_RESPONSE_OBJECT
+                .put("id", 1)
+                .put("username", VALID_USERNAME)
+                .put("email", "user@example.com")
+                .put("name", "User Name")
+                .put("private_token", "0123456789abcdef")
+                .put("blocked", false);
+    }
 
     /**
      * Creates a GitLab API mock running on a specified port.
@@ -67,8 +90,11 @@ public class GitLabServerRule extends WireMockRule {
      * {@link #VALID_PASSWORD}.
      */
     public void expectValidSessionRequest() {
-        // todo: implement
-        throw new UnsupportedOperationException("Not implemented");
+        stubFor(post(urlEqualTo("/api/v3/session"))
+                .withRequestBody(equalTo(VALID_SESSION_REQUEST_BODY))
+                .willReturn(aResponse()
+                        .withStatus(201)
+                        .withBody(VALID_RESPONSE_OBJECT.toString())));
     }
 
     /**
@@ -78,7 +104,9 @@ public class GitLabServerRule extends WireMockRule {
      * {@link #INVALID_PASSWORD}.
      */
     public void expectInvalidSessionRequest() {
-        // todo: implement
-        throw new UnsupportedOperationException("Not implemented");
+        stubFor(post(urlEqualTo("/api/v3/session"))
+                .withRequestBody(equalTo(INVALID_SESSION_REQUEST_BODY))
+                .willReturn(aResponse()
+                        .withStatus(401)));
     }
 }
