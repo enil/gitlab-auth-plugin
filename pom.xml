@@ -8,7 +8,7 @@
 
   <groupId>com.sonymobile.jenkins.plugins</groupId>
   <artifactId>gitlab-auth</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.1</version>
   <packaging>hpi</packaging>
   <name>GitLab Auth</name>
 
