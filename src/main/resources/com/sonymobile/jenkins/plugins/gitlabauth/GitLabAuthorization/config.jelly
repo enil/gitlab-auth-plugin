@@ -1,0 +1,5 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <f:entry title="Jenkins admin users" description="Usernames of GitLab users who will be granted full admin rights on the Jenkins server. Usernames should be seperated by commas.">
+    <f:textbox field="adminUsernames" />
+  </f:entry>
+</j:jelly>
