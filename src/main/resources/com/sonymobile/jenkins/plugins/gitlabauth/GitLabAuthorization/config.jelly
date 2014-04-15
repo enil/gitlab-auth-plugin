@@ -1,5 +1,42 @@
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <f:entry title="Jenkins admin users" description="Usernames of GitLab users who will be granted full admin rights on the Jenkins server. Usernames should be seperated by commas.">
-    <f:textbox field="adminUsernames" />
-  </f:entry>
+<j:jelly xmlns:d="jelly:define" xmlns:f="/lib/form" xmlns:j="jelly:core" xmlns:l="/lib/layout" xmlns:st="jelly:stapler" xmlns:t="/lib/hudson">
+  <f:block xmlns:local="local">
+    <link rel="stylesheet" href="/plugin/gitlab-auth/table.css" type="text/css" />
+    <j:set var="permissionGroups" value="${descriptor.allPermissionGroups}" />
+    <table class="center-align global-matrix-authorization-strategy-table">
+      <tr>
+        <td rowspan="2" class="pane-header">
+          ${%Permission}
+          <br />
+          ${%Role}
+        </td>
+        <j:forEach var="pg" items="${permissionGroups.keySet()}">
+          <td colspan="${permissionGroups.get(pg).size()}" class="pane-header">${pg.title}</td>
+        </j:forEach>
+      </tr>
+      <tr>
+        <j:forEach var="pg" items="${permissionGroups.keySet()}">
+          <j:forEach var="p" items="${permissionGroups.get(pg)}">
+            <td>${p.name}</td>
+          </j:forEach>
+        </j:forEach>
+      </tr>
+      <j:set var="roles" value="${descriptor.allRoles}" />
+      <j:forEach var="role" items="${roles}">
+        <tr>
+          <td>${role}</td>
+          <j:forEach var="pg" items="${permissionGroups.keySet()}">
+            <j:forEach var="p" items="${permissionGroups.get(pg)}">
+              <td>
+                <f:checkbox name="${role}${%-}${p.id}" checked="${instance.isPermissionSet(role,p)}"/>
+              </td>
+            </j:forEach>
+          </j:forEach>
+        </tr>
+      </j:forEach>
+    </table>
+    <f:entry title="Admin usernames" description="Usernames of GitLab users who will be granted admin rights on the Jenkins server. Usernames should be seperated by commas.">
+      <f:checkbox field="useGitLabAdmins" title="Check if all GitLab admins also should be Jenkins admins."/>
+      <f:textbox field="adminUsernames" />
+    </f:entry>
+  </f:block>
 </j:jelly>

@@ -1,7 +1,8 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2014 Andreas Alanko, Emil Nilsson, Sony Mobile Communications AB. All rights reserved.
+ * Copyright (c) 2014 Andreas Alanko, Emil Nilsson, Sony Mobile Communications AB. 
+ * All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,14 +26,15 @@
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.acegisecurity.Authentication;
 import org.apache.commons.lang.StringUtils;
 
 import hudson.security.ACL;
 import hudson.security.Permission;
-import hudson.security.PermissionGroup;
 
 /**
  * ACL for GitLab
@@ -42,24 +44,30 @@ import hudson.security.PermissionGroup;
 public class GitLabACL extends ACL {
     /** GitLab usernames with admin rights on Jenkins */
     private List<String> adminUsernames;
-    
+    /** If we want all GitLab admins to be Jenkins admins aswell */
     private boolean useGitLabAdmins;
     
-    private static final String FAL_OWNER = "Owner";
-    private static final String FAL_MASTER = "Master";
-    private static final String FAL_DEVELOPER = "Developer";
-    private static final String FAL_REPORTER = "Reporter";
-    private static final String FAL_GUEST = "Guest";
-    private static final String FAL_ANONYMOUS = "Anonymous";
-    private static final String FAL_LOGGED_IN = "Logged In";
-    private static final String[] folderAccessLevels = {FAL_OWNER, FAL_MASTER, FAL_DEVELOPER, FAL_REPORTER, FAL_GUEST, FAL_ANONYMOUS, FAL_LOGGED_IN};
+    /** Jenkins roles */
+    private static final String JAL_ADMIN = "Admin";
+    private static final String JAL_LOGGED_IN = "Logged In";
+    private static final String JAL_ANONYMOUS = "Anonymous";
+    public static final String[] jenkinsAccessLevels = {JAL_ADMIN, JAL_LOGGED_IN, JAL_ANONYMOUS};
+    
+    /** Map of all Jenkins roles and their respective permissions */
+    private HashMap<String, List<Permission>> grantedJenkinsPermissions;
     
     /**
-     * Creates an ACL to use for GitLab.
+     * Creates an ACL to use for GitLabAuthorization.
      */
     public GitLabACL(String adminUsernames, boolean useGitLabAdmins) {
         this.useGitLabAdmins = useGitLabAdmins;
         this.adminUsernames = new ArrayList<String>();
+        
+        grantedJenkinsPermissions = new HashMap<String, List<Permission>>();
+        
+        for (int i = 0; i < jenkinsAccessLevels.length; i++) {
+            grantedJenkinsPermissions.put(jenkinsAccessLevels[i], new ArrayList<Permission>());
+        }
         
         if (adminUsernames != null && adminUsernames.length() > 0) {
             adminUsernames = adminUsernames.trim();
@@ -84,23 +92,12 @@ public class GitLabACL extends ACL {
      */
     @Override
     public boolean hasPermission(Authentication a, Permission permission) {
-        System.out.println("pric: " + a.getPrincipal());
-        System.out.println("##############################################");
-        for (PermissionGroup pg : PermissionGroup.getAll()) {
-            System.out.println("- " + pg.owner + "(" + pg.title + ")");
-            
-            for (Permission p : pg.getPermissions()) {
-                System.out.println("-- " + p.name);
-            }
-        }
-        if(a.getName().equals("jsmith")) {
-            return true;
-        }
-        return false;
+        //TODO: Implement
+        return true;
     }
     
     /**
-     * Returns a string with GitLab usernames who has full admin access in Jenkins.
+     * Returns a string with GitLab usernames who has admin access in Jenkins.
      * 
      * The usernames are separated by commas.
      * 
@@ -117,5 +114,46 @@ public class GitLabACL extends ACL {
      */
     public boolean getUseGitLabAdmins() {
         return useGitLabAdmins;
+    }
+
+    /**
+     * Returns a map with the given permissions to the different GitLab roles.
+     * 
+     * GitLab roles are represented as a String object, which is the key to this map.
+     * The value of each key is the permissions granted to the specific role.
+     * 
+     * @return a map with the granted permissions
+     */
+    public Map<String, List<Permission>> getGrantedJenkinsPermissions() {
+        return grantedJenkinsPermissions;
+    }
+
+    /**
+     * Checks if the given Jenkins role has the given permission.
+     * 
+     * @param role the role
+     * @param p the permission
+     * @return true if the role has permission
+     */
+    public boolean isPermissionSet(String role, Permission p) {
+        if (roleExists(role)) {
+            return grantedJenkinsPermissions.get(role).contains(p);
+        }
+        return false;
+    }
+    
+    /**
+     * Checks if the given Jenkins role exists.
+     * 
+     * @param role the role
+     * @return true if role exists
+     */
+    private boolean roleExists(String role) {
+        for (int i = 0; i < jenkinsAccessLevels.length; i++) {
+            if (jenkinsAccessLevels[i].equals(role)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

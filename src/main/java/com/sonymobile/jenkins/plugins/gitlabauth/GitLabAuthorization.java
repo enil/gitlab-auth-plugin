@@ -1,7 +1,8 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2014 Andreas Alanko, Emil Nilsson, Sony Mobile Communications AB. All rights reserved.
+ * Copyright (c) 2014 Andreas Alanko, Emil Nilsson, Sony Mobile Communications AB. 
+ * All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,10 +26,16 @@
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
 
 import hudson.Extension;
 import hudson.model.Descriptor;
@@ -39,7 +46,7 @@ import hudson.security.Permission;
 import hudson.security.PermissionGroup;
 
 /**
- * Inherit permissions from a GitLab server.
+ * Creates an authorization strategy for GitLab.
  * 
  * @author Andreas Alanko
  */
@@ -55,21 +62,6 @@ public class GitLabAuthorization extends AuthorizationStrategy {
     @DataBoundConstructor
     public GitLabAuthorization(String adminUsernames, boolean useGitLabAdmins) {
         rootACL = new GitLabACL(adminUsernames, useGitLabAdmins);
-    }
-    
-    /**
-     * Returns a list of all permission groups except the ones belonging to Item and Permission.
-     * 
-     * Item permission group is configured separately in each folder.
-     * 
-     * @return a List of permission groups
-     */
-    public List<PermissionGroup> getAllGroupsExceptItem() {
-        List<PermissionGroup> groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
-        groups.remove(PermissionGroup.get(Permission.class));
-        groups.remove(PermissionGroup.get(Item.class));
-        
-        return groups;
     }
     
     /**
@@ -113,13 +105,75 @@ public class GitLabAuthorization extends AuthorizationStrategy {
     public ACL getRootACL() {
         return rootACL;
     }
+    
+    /**
+     * Checks if the given GitLab role has the given permission.
+     * 
+     * Mainly used to check if a checkbox should be checked or not in the config file.
+     * 
+     * @param role the role name
+     * @param p the permission
+     * @return true if the given role has the given permission
+     */
+    public boolean isPermissionSet(String role, Permission p) {
+        if(role != null && p != null) {
+            return rootACL.isPermissionSet(role, p);
+        }
+        return false;
+    }
 
     @Extension
     public static class DescriptorImpl extends Descriptor<AuthorizationStrategy> {
-
+        
         @Override
         public String getDisplayName() {
             return "GitLab Authorization Strategy";
+        }
+        
+//        @Override
+//        public GitLabAuthorization newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+//            //GitLabAuthorization authorization = new GitLabAuthorization(adminUsernames, useGitLabAdmins);
+//            
+//            //TODO: handle table data.
+//            return null;
+//        }
+        
+        /**
+         * Returns a map of all permission groups and their permissions except permission groups Item and Permission.
+         * 
+         * Item permission group is configured separately in each folder.
+         * 
+         * @return a List of permission groups
+         */
+        public Map<PermissionGroup, List<Permission>> getAllPermissionGroups() {
+            List<PermissionGroup> groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
+            // Generic permissions, which we don't need
+            groups.remove(PermissionGroup.get(Permission.class));
+            // We configure this on each folder item
+            groups.remove(PermissionGroup.get(Item.class));
+            
+            // Matrix with all permission groups and the permissions belonging to the permission group
+            HashMap<PermissionGroup, List<Permission>> permissionMatrix = new HashMap<PermissionGroup, List<Permission>>();
+            
+            for (PermissionGroup pg : groups) {
+                permissionMatrix.put(pg, new ArrayList<Permission>());
+                for (Permission p : pg.getPermissions()) {
+                    if (p.enabled) {
+                        permissionMatrix.get(pg).add(p);
+                    }
+                }
+            }
+            
+            return permissionMatrix;
+        }
+        
+        /**
+         * Returns a list with all Jenkins roles.
+         * 
+         * @return a list with all roles
+         */
+        public List<String> getAllRoles() {
+            return new ArrayList<String>(Arrays.asList(GitLabACL.jenkinsAccessLevels));
         }
     }
 }
