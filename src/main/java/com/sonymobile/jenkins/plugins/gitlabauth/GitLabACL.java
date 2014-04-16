@@ -141,23 +141,8 @@ public class GitLabACL extends ACL {
      * @return true if the role has permission
      */
     public boolean isPermissionSet(String role, Permission p) {
-        if (roleExists(role)) {
+        if(grantedJenkinsPermissions.containsKey(role)) {
             return grantedJenkinsPermissions.get(role).contains(p);
-        }
-        return false;
-    }
-    
-    /**
-     * Checks if the given Jenkins role exists.
-     * 
-     * @param role the role
-     * @return true if role exists
-     */
-    private boolean roleExists(String role) {
-        for (int i = 0; i < jenkinsAccessLevels.length; i++) {
-            if (jenkinsAccessLevels[i].equals(role)) {
-                return true;
-            }
         }
         return false;
     }
