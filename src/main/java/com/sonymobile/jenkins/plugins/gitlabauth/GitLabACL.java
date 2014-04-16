@@ -26,11 +26,18 @@
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.acegisecurity.Authentication;
 import org.apache.commons.lang.StringUtils;
+
+import com.thoughtworks.xstream.converters.Converter;
+import com.thoughtworks.xstream.converters.MarshallingContext;
+import com.thoughtworks.xstream.converters.UnmarshallingContext;
+import com.thoughtworks.xstream.io.HierarchicalStreamReader;
+import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 
 import hudson.security.ACL;
 import hudson.security.Permission;
@@ -102,7 +109,7 @@ public class GitLabACL extends ACL {
      * @return a string with usernames separated by commas
      */
     public String getAdminUsernames() {
-        return StringUtils.join(adminUsernames.iterator(), ",");
+        return StringUtils.join(adminUsernames.iterator(), ", ");
     }
     
     /**
@@ -153,5 +160,79 @@ public class GitLabACL extends ACL {
             }
         }
         return false;
+    }
+    
+    /**
+     * Used to store permission id instead of the reference to the permission objects in grantedPermissions in the config.xml file.
+     */
+    public static class ConverterImpl implements Converter {
+        public boolean canConvert(Class clazz) {
+            return clazz.equals(GitLabACL.class);
+        }
+
+        /**
+         * Used to write the internal data of the GitLabACL class to config.xml file.
+         * 
+         * Will be written in the following format: userRole:permissionId
+         */
+        public void marshal(Object value, HierarchicalStreamWriter writer, MarshallingContext context) {
+            GitLabACL acl = (GitLabACL) value;
+            
+            writer.startNode("useGitLabAdmins");
+            writer.setValue(String.valueOf(acl.useGitLabAdmins));
+            writer.endNode();
+            
+            for (int i = 0; i < acl.adminUsernames.size(); i++) {
+                writer.startNode("admin");
+                writer.setValue(acl.adminUsernames.get(i));
+                writer.endNode();
+            }
+            
+            for (String role : acl.getGrantedJenkinsPermissions().keySet()) {
+                List<Permission> permissions = acl.getGrantedJenkinsPermissions().get(role);
+                
+                for (int i = 0; i < permissions.size(); i++) {
+                    writer.startNode("permission");
+                    writer.setValue(role + ":" + permissions.get(i).getId());
+                    writer.endNode();
+                }
+            }
+        }
+
+        /**
+         * Used to parse data stored in the config.xml file to be used in the GitLabACL object.
+         */
+        public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context) {
+            HashMap<String, List<Permission>> grantedJenkinsPermissions = new HashMap<String, List<Permission>>();
+            ArrayList<String> adminUsernames = new ArrayList<String>();
+            boolean useGitLabAdmins = false;
+            
+            while (reader.hasMoreChildren()) {
+                reader.moveDown();
+                
+                if ("permission".equals(reader.getNodeName())) {
+                    String[] value = reader.getValue().split(":");
+                    
+                    if (value.length == 2) {
+                        if (!grantedJenkinsPermissions.containsKey(value[0])) {
+                            grantedJenkinsPermissions.put(value[0], new ArrayList<Permission>());
+                        }
+                        Permission p = Permission.fromId(value[1]);
+                        if (p != null) {
+                            grantedJenkinsPermissions.get(value[0]).add(p);
+                        }
+                    }
+                } else if ("useGitLabAdmins".equals(reader.getNodeName())) {
+                    useGitLabAdmins = Boolean.valueOf(reader.getValue());
+                } else if ("admin".equals(reader.getNodeName())) {
+                    adminUsernames.add(reader.getValue());
+                }
+                
+                reader.moveUp();
+            }
+            
+            return new GitLabACL(StringUtils.join(adminUsernames.iterator(), ", "), useGitLabAdmins, grantedJenkinsPermissions);
+        }
+        
     }
 }
