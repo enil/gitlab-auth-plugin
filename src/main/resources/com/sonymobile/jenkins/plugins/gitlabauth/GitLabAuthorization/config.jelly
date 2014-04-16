@@ -2,7 +2,7 @@
   <f:block xmlns:local="local">
     <link rel="stylesheet" href="/plugin/gitlab-auth/table.css" type="text/css" />
     <j:set var="permissionGroups" value="${descriptor.allPermissionGroups}" />
-    <table class="center-align global-matrix-authorization-strategy-table">
+    <table class="center-align global-matrix-authorization-strategy-table" name="permissionTable">
       <tr>
         <td rowspan="2" class="pane-header">
           ${%Permission}
@@ -22,12 +22,12 @@
       </tr>
       <j:set var="roles" value="${descriptor.allRoles}" />
       <j:forEach var="role" items="${roles}">
-        <tr>
+        <tr name="${role}">
           <td>${role}</td>
           <j:forEach var="pg" items="${permissionGroups.keySet()}">
             <j:forEach var="p" items="${permissionGroups.get(pg)}">
               <td>
-                <f:checkbox name="${role}${%-}${p.id}" checked="${instance.isPermissionSet(role,p)}"/>
+                <f:checkbox name="[${p.id}]" checked="${instance.isPermissionSet(role, p)}"/>
               </td>
             </j:forEach>
           </j:forEach>

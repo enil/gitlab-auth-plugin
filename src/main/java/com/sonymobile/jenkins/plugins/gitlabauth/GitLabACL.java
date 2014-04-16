@@ -26,7 +26,6 @@
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -54,20 +53,19 @@ public class GitLabACL extends ACL {
     public static final String[] jenkinsAccessLevels = {JAL_ADMIN, JAL_LOGGED_IN, JAL_ANONYMOUS};
     
     /** Map of all Jenkins roles and their respective permissions */
-    private HashMap<String, List<Permission>> grantedJenkinsPermissions;
+    private Map<String, List<Permission>> grantedJenkinsPermissions;
     
     /**
      * Creates an ACL to use for GitLabAuthorization.
+     * 
+     * @param adminUsernames
+     * @param useGitLabAdmins
+     * @param grantedJenkinsPermissions
      */
-    public GitLabACL(String adminUsernames, boolean useGitLabAdmins) {
+    public GitLabACL(String adminUsernames, boolean useGitLabAdmins, Map<String, List<Permission>> grantedJenkinsPermissions) {
         this.useGitLabAdmins = useGitLabAdmins;
         this.adminUsernames = new ArrayList<String>();
-        
-        grantedJenkinsPermissions = new HashMap<String, List<Permission>>();
-        
-        for (int i = 0; i < jenkinsAccessLevels.length; i++) {
-            grantedJenkinsPermissions.put(jenkinsAccessLevels[i], new ArrayList<Permission>());
-        }
+        this.grantedJenkinsPermissions = grantedJenkinsPermissions;
         
         if (adminUsernames != null && adminUsernames.length() > 0) {
             adminUsernames = adminUsernames.trim();

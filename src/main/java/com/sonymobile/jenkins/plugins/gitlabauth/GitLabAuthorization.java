@@ -31,10 +31,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import net.sf.json.JSONObject;
 
-import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
 import hudson.Extension;
@@ -59,9 +59,8 @@ public class GitLabAuthorization extends AuthorizationStrategy {
      * 
      * Also creates an ACL for GitLab.
      */
-    @DataBoundConstructor
-    public GitLabAuthorization(String adminUsernames, boolean useGitLabAdmins) {
-        rootACL = new GitLabACL(adminUsernames, useGitLabAdmins);
+    public GitLabAuthorization(String adminUsernames, boolean useGitLabAdmins, Map<String, List<Permission>> grantedJenkinsPermissions) {
+        rootACL = new GitLabACL(adminUsernames, useGitLabAdmins, grantedJenkinsPermissions);
     }
     
     /**
@@ -116,7 +115,7 @@ public class GitLabAuthorization extends AuthorizationStrategy {
      * @return true if the given role has the given permission
      */
     public boolean isPermissionSet(String role, Permission p) {
-        if(role != null && p != null) {
+        if(rootACL != null && role != null && p != null) {
             return rootACL.isPermissionSet(role, p);
         }
         return false;
@@ -130,13 +129,33 @@ public class GitLabAuthorization extends AuthorizationStrategy {
             return "GitLab Authorization Strategy";
         }
         
-//        @Override
-//        public GitLabAuthorization newInstance(StaplerRequest req, JSONObject formData) throws FormException {
-//            //GitLabAuthorization authorization = new GitLabAuthorization(adminUsernames, useGitLabAdmins);
-//            
-//            //TODO: handle table data.
-//            return null;
-//        }
+        @Override
+        public GitLabAuthorization newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+            String adminUsernames = formData.getString("adminUsernames");
+            boolean useGitLabAdmins = formData.getBoolean("useGitLabAdmins");
+
+            HashMap<String, List<Permission>> grantedPermissions = new HashMap<String, List<Permission>>();
+            
+            Map<String, Object> tableData = formData.getJSONObject("permissionTable");
+            
+            for(Entry<String, Object> rolePermission : tableData.entrySet()) {
+                String role = rolePermission.getKey();
+                
+                Map<String, Object> value = (JSONObject) rolePermission.getValue();
+                
+                for (Entry<String, Object> valueSet : value.entrySet()) {
+                    if ((Boolean) valueSet.getValue()) {
+                        if (!grantedPermissions.containsKey(role)) {
+                            grantedPermissions.put(role, new ArrayList<Permission>());
+                        }
+                        
+                        grantedPermissions.get(role).add(Permission.fromId(valueSet.getKey()));
+                    }
+                }
+            }
+            
+            return new GitLabAuthorization(adminUsernames, useGitLabAdmins, grantedPermissions);
+        }
         
         /**
          * Returns a map of all permission groups and their permissions except permission groups Item and Permission.
