@@ -59,15 +59,15 @@ public class GitLabACL extends ACL {
     private static final String JAL_ANONYMOUS = "Anonymous";
     public static final String[] jenkinsAccessLevels = {JAL_ADMIN, JAL_LOGGED_IN, JAL_ANONYMOUS};
     
-    /** Map of all Jenkins roles and their respective permissions */
+    /** Map of all Jenkins roles and their respective granted permissions */
     private Map<String, List<Permission>> grantedJenkinsPermissions;
     
     /**
      * Creates an ACL to use for GitLabAuthorization.
      * 
-     * @param adminUsernames
-     * @param useGitLabAdmins
-     * @param grantedJenkinsPermissions
+     * @param adminUsernames the admin usernames seperated by a comma
+     * @param useGitLabAdmins if GitLab admins should be Jenkins admins
+     * @param grantedJenkinsPermissions map of all Jenkins roles and their respective granted permissions
      */
     public GitLabACL(String adminUsernames, boolean useGitLabAdmins, Map<String, List<Permission>> grantedJenkinsPermissions) {
         this.useGitLabAdmins = useGitLabAdmins;
@@ -148,27 +148,29 @@ public class GitLabACL extends ACL {
     }
     
     /**
-     * Used to store permission id instead of the reference to the permission objects in grantedPermissions in the config.xml file.
+     * Used to store the permission id instead of the reference to the permission objects to the config.xml file.
      */
     public static class ConverterImpl implements Converter {
+    	private static final String XML_FIELD_PERMISSION = "permission";
+    	private static final String XML_FIELD_ADMIN = "admin";
+    	private static final String XML_FIELD_USEGITLABADMINS = "useGitLabAdmins";
+    	
         public boolean canConvert(Class clazz) {
             return clazz.equals(GitLabACL.class);
         }
 
         /**
-         * Used to write the internal data of the GitLabACL class to config.xml file.
-         * 
-         * Will be written in the following format: userRole:permissionId
+         * Used to write the internal data of the GitLabACL object to config.xml file.
          */
         public void marshal(Object value, HierarchicalStreamWriter writer, MarshallingContext context) {
             GitLabACL acl = (GitLabACL) value;
             
-            writer.startNode("useGitLabAdmins");
+            writer.startNode(XML_FIELD_USEGITLABADMINS);
             writer.setValue(String.valueOf(acl.useGitLabAdmins));
             writer.endNode();
             
             for (int i = 0; i < acl.adminUsernames.size(); i++) {
-                writer.startNode("admin");
+                writer.startNode(XML_FIELD_ADMIN);
                 writer.setValue(acl.adminUsernames.get(i));
                 writer.endNode();
             }
@@ -177,7 +179,7 @@ public class GitLabACL extends ACL {
                 List<Permission> permissions = acl.getGrantedJenkinsPermissions().get(role);
                 
                 for (int i = 0; i < permissions.size(); i++) {
-                    writer.startNode("permission");
+                    writer.startNode(XML_FIELD_PERMISSION);
                     writer.setValue(role + ":" + permissions.get(i).getId());
                     writer.endNode();
                 }
@@ -195,7 +197,7 @@ public class GitLabACL extends ACL {
             while (reader.hasMoreChildren()) {
                 reader.moveDown();
                 
-                if ("permission".equals(reader.getNodeName())) {
+                if (XML_FIELD_PERMISSION.equals(reader.getNodeName())) {
                     String[] value = reader.getValue().split(":");
                     
                     if (value.length == 2) {
@@ -207,9 +209,9 @@ public class GitLabACL extends ACL {
                             grantedJenkinsPermissions.get(value[0]).add(p);
                         }
                     }
-                } else if ("useGitLabAdmins".equals(reader.getNodeName())) {
+                } else if (XML_FIELD_USEGITLABADMINS.equals(reader.getNodeName())) {
                     useGitLabAdmins = Boolean.valueOf(reader.getValue());
-                } else if ("admin".equals(reader.getNodeName())) {
+                } else if (XML_FIELD_ADMIN.equals(reader.getNodeName())) {
                     adminUsernames.add(reader.getValue());
                 }
                 
