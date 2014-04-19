@@ -30,17 +30,22 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
 import hudson.security.SecurityRealm;
 import jenkins.model.Jenkins;
+import org.acegisecurity.Authentication;
+import org.acegisecurity.userdetails.User;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import java.util.concurrent.Callable;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
@@ -107,7 +112,13 @@ public class GitLabSecurityRealmTest {
 
         webClient.login("username", "password");
 
-        assertThat("User should be logged in", jenkins.getAuthentication(), is(not(Jenkins.ANONYMOUS)));
+        // get authentication from the web client
+        Authentication authentication = getAuthentication();
+        assertThat("User should be logged in", authentication, is(not(Jenkins.ANONYMOUS)));
+        assertThat(authentication.getPrincipal(), is(instanceOf(User.class)));
+
+        User user = (User)authentication.getPrincipal();
+        assertThat("username", is(user.getUsername()));
     }
 
     /**
@@ -115,7 +126,7 @@ public class GitLabSecurityRealmTest {
      */
     @Test
     public void authenticateWithInvalidCredentials() throws Exception {
-        // make GitLab respond with an HTTP 401 Unauthorized error
+        // make GitLab respond with an HTTP 401 Unauthorized
         stubFor(post(urlEqualTo("/api/v3/session"))
                 .withRequestBody(containing("login=invalidusername"))
                 .withRequestBody(containing("password=invalidpassword"))
@@ -146,5 +157,24 @@ public class GitLabSecurityRealmTest {
         // use GitLab authentication
         securityRealm = new GitLabSecurityRealm();
         jenkins.setSecurityRealm(securityRealm);
+    }
+
+    /**
+     * Gets the authentication object from the web client.
+     *
+     * @return the authentication object
+     */
+    private Authentication getAuthentication() {
+        try {
+            return webClient.executeOnServer(new Callable<Authentication>() {
+                public Authentication call() throws Exception {
+                    return jenkins.getAuthentication();
+                }
+            });
+        } catch (Exception e) {
+            // safely ignore all exceptions, the method never throws anything
+            return null;
+        }
+
     }
 }
