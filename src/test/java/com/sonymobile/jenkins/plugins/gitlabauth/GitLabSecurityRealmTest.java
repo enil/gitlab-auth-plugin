@@ -26,8 +26,8 @@
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
-import com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabServerRule;
 import hudson.security.SecurityRealm;
 import jenkins.model.Jenkins;
 import org.junit.Before;
@@ -36,10 +36,11 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabServerRule.INVALID_PASSWORD;
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabServerRule.INVALID_USERNAME;
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabServerRule.VALID_PASSWORD;
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabServerRule.VALID_USERNAME;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
@@ -57,15 +58,23 @@ public class GitLabSecurityRealmTest {
     private final static int GITLAB_PORT = 9090;
 
     /** A rule for creating a Jenkins environment. */
-    @Rule public JenkinsRule jenkinsRule = new JenkinsRule();
-    /** A rule for a mocked GitLab server. */
-    @Rule public GitLabServerRule gitLabRule = new GitLabServerRule(GITLAB_PORT);
+    @Rule
+    public JenkinsRule jenkinsRule = new JenkinsRule();
+
+    /** A rule for mocking the GitLab server API. */
+    @Rule
+    public WireMockRule wiremockRule = new WireMockRule(GITLAB_PORT);
+
     /** A rule for catching expected exceptions. */
-    @Rule public ExpectedException thrown = ExpectedException.none();
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
     /** The GitLab security realm to use. */
     private SecurityRealm securityRealm;
+
     /** The Jenkins instance. */
     private Jenkins jenkins;
+
     /** The Jenkins web client. */
     private JenkinsRule.WebClient webClient;
 
@@ -85,33 +94,39 @@ public class GitLabSecurityRealmTest {
 
     /**
      * Test authenticating a user logging in using valid credentials.
-     *
-     * @throws Exception if the Jenkins web client throws any unexpected exception
      */
     @Test
     public void authenticateWithValidCredentials() throws Exception {
         // make GitLab respond with a valid session
-        gitLabRule.expectValidSessionRequest();
+        stubFor(post(urlEqualTo("/api/v3/session"))
+                .withRequestBody(containing("login=username"))
+                .withRequestBody(containing("password=password"))
+                .willReturn(aResponse()
+                        .withStatus(201)
+                        .withBodyFile("/api/v3/session")));
 
-        webClient.login(VALID_USERNAME, VALID_PASSWORD);
+        webClient.login("username", "password");
 
         assertThat("User should be logged in", jenkins.getAuthentication(), is(not(Jenkins.ANONYMOUS)));
     }
 
     /**
      * Test authenticating a user logging in using invalid credentials.
-     *
-     * @throws Exception if the Jenkins web client throws any unexpected exception
      */
     @Test
     public void authenticateWithInvalidCredentials() throws Exception {
-        // make GitLab respond with an error
-        gitLabRule.expectInvalidSessionRequest();
+        // make GitLab respond with an HTTP 401 Unauthorized error
+        stubFor(post(urlEqualTo("/api/v3/session"))
+                .withRequestBody(containing("login=invalidusername"))
+                .withRequestBody(containing("password=invalidpassword"))
+                .willReturn(aResponse()
+                        .withStatus(401)));
+
         // login should fail with HTTP 401 Unauthorized
         thrown.expect(FailingHttpStatusCodeException.class);
         thrown.expectMessage("401");
 
-        webClient.login(INVALID_USERNAME, INVALID_PASSWORD);
+        webClient.login("invalidusername", "invalidpassword");
     }
 
     /**
