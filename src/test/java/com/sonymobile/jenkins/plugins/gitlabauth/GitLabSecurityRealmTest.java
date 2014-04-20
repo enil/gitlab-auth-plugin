@@ -31,7 +31,6 @@ import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
 import hudson.security.SecurityRealm;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
-import org.acegisecurity.userdetails.User;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -115,10 +114,14 @@ public class GitLabSecurityRealmTest {
         // get authentication from the web client
         Authentication authentication = getAuthentication();
         assertThat("User should be logged in", authentication, is(not(Jenkins.ANONYMOUS)));
-        assertThat(authentication.getPrincipal(), is(instanceOf(User.class)));
+        assertThat(authentication.getPrincipal(), is(instanceOf(GitLabUser.class)));
 
-        User user = (User)authentication.getPrincipal();
+        // get the authenticated user
+        GitLabUser user = (GitLabUser)authentication.getPrincipal();
         assertThat("username", is(user.getUsername()));
+        assertThat(2, is(user.getId()));
+        assertThat("user@example.com", is(user.getEmail()));
+        assertThat("0123456789abcdef", is(user.getPrivateToken()));
     }
 
     /**
