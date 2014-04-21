@@ -1,0 +1,22 @@
+{
+  "id": 3,
+  "username": "blockeduser",
+  "email": "blocked@example.com",
+  "name": "Blocked User",
+  "bio": "",
+  "skype": "",
+  "linkedin": "",
+  "twitter": "",
+  "website_url": "",
+  "theme_id": 2,
+  "color_scheme_id": 2,
+  "state": "blocked",
+  "created_at": "2010-11-12T13:14:15.000Z",
+  "extern_uid": null,
+  "provider": null,
+  "is_admin": true,
+  "can_create_group": false,
+  "can_create_project": false,
+  "avatar_url": null,
+  "private_token": "0123456789abcdef"
+}

@@ -107,7 +107,7 @@ public class GitLabSecurityRealmTest {
                 .withRequestBody(containing("password=password"))
                 .willReturn(aResponse()
                         .withStatus(201)
-                        .withBodyFile("/api/v3/session")));
+                        .withBodyFile("/api/v3/session.json")));
 
         webClient.login("username", "password");
 
