@@ -32,6 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import net.sf.json.JSONObject;
 
@@ -57,7 +59,9 @@ public class GitLabAuthorization extends AuthorizationStrategy {
     /**
      * Creates an Authorization Strategy for GitLab.
      * 
-     * Also creates an ACL for GitLab.
+     * @param adminUsernames the admin usernames seperated by a comma
+     * @param useGitLabAdmins if GitLab admins should be Jenkins admins
+     * @param grantedJenkinsPermissions map of all Jenkins roles and their respective granted permissions
      */
     public GitLabAuthorization(String adminUsernames, boolean useGitLabAdmins, Map<String, List<Permission>> grantedJenkinsPermissions) {
         rootACL = new GitLabACL(adminUsernames, useGitLabAdmins, grantedJenkinsPermissions);
@@ -162,7 +166,7 @@ public class GitLabAuthorization extends AuthorizationStrategy {
          * 
          * Item permission group is configured separately in each folder.
          * 
-         * @return a List of permission groups
+         * @return a map of permission groups and their respective permissions
          */
         public Map<PermissionGroup, List<Permission>> getAllPermissionGroups() {
             List<PermissionGroup> groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
@@ -172,7 +176,7 @@ public class GitLabAuthorization extends AuthorizationStrategy {
             groups.remove(PermissionGroup.get(Item.class));
             
             // Matrix with all permission groups and the permissions belonging to the permission group
-            HashMap<PermissionGroup, List<Permission>> permissionMatrix = new HashMap<PermissionGroup, List<Permission>>();
+            SortedMap<PermissionGroup, List<Permission>> permissionMatrix = new TreeMap<PermissionGroup, List<Permission>>();
             
             for (PermissionGroup pg : groups) {
                 permissionMatrix.put(pg, new ArrayList<Permission>());
