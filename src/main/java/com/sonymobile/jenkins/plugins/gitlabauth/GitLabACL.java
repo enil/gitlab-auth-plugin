@@ -91,14 +91,45 @@ public class GitLabACL extends ACL {
     /**
      * Checks if the given principal has permission to use the permission.
      * 
-     * @param a the authentication object
+     * @param auth the authentication object
      * @param permission the permission
      * @return true if the given principal has permission
      */
     @Override
-    public boolean hasPermission(Authentication a, Permission permission) {
-        //TODO: Implement
-        return true;
+    public boolean hasPermission(Authentication auth, Permission permission) {
+        if (auth.isAuthenticated()) {
+            if(auth.getPrincipal() instanceof GitLabUserDetails) {
+                if(isAdmin((GitLabUserDetails) auth.getPrincipal())) {
+                    return checkRolePermission(JAL_ADMIN, permission);
+                } else {
+                    return checkRolePermission(JAL_LOGGED_IN, permission);
+                }
+            }
+        }
+        return checkRolePermission(JAL_ANONYMOUS, permission);
+    }
+    
+    /**
+     * Checks if the given user has admin access on the jenkins server.
+     * 
+     * @param user the user
+     * @return true is the user has admin access else false
+     */
+    private boolean isAdmin(GitLabUserDetails user) {
+//        return adminUsernames.contains(user.getUsername()) || (useGitLabAdmins && GitLab.isAdmin(user.getId()));
+        return adminUsernames.contains(user.getUsername());
+    }
+    
+    /**
+     * Checks if the given role has the given permission.
+     * 
+     * @param role the role
+     * @param permission the permission
+     * @return true if the role has the given permission else false
+     */
+    private boolean checkRolePermission(String role, Permission permission) {
+        List<Permission> rolePermissions = grantedJenkinsPermissions.get(role);
+        return (rolePermissions != null) ? rolePermissions.contains(permission) : false;
     }
     
     /**
@@ -137,12 +168,12 @@ public class GitLabACL extends ACL {
      * Checks if the given Jenkins role has the given permission.
      * 
      * @param role the role
-     * @param p the permission
+     * @param permission the permission
      * @return true if the role has permission
      */
-    public boolean isPermissionSet(String role, Permission p) {
+    public boolean isPermissionSet(String role, Permission permission) {
         if(grantedJenkinsPermissions.containsKey(role)) {
-            return grantedJenkinsPermissions.get(role).contains(p);
+            return grantedJenkinsPermissions.get(role).contains(permission);
         }
         return false;
     }
