@@ -25,31 +25,28 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
-import net.sf.json.JSONObject;
-
-import org.acegisecurity.AuthenticationException;
-import org.acegisecurity.BadCredentialsException;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.userdetails.UserDetails;
-import org.acegisecurity.userdetails.User;
-import org.acegisecurity.userdetails.UsernameNotFoundException;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
-import org.springframework.dao.DataAccessException;
-
 import com.sonymobile.gitlab.exceptions.ApiConnectionFailureException;
 import com.sonymobile.gitlab.exceptions.AuthenticationFailedException;
+import com.sonymobile.gitlab.exceptions.GitLabApiException;
+import com.sonymobile.gitlab.model.GitLabSessionInfo;
 import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
-
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.security.AbstractPasswordBasedSecurityRealm;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
+import net.sf.json.JSONObject;
+import org.acegisecurity.AuthenticationException;
+import org.acegisecurity.BadCredentialsException;
+import org.acegisecurity.userdetails.UserDetails;
+import org.acegisecurity.userdetails.UsernameNotFoundException;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
+import org.springframework.dao.DataAccessException;
 
 /**
  * A security realm to support the use of login in with GitLab credentials to a Jenkins server.
- * 
+ *
  * @author Andreas Alanko
  */
 public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
@@ -61,9 +58,9 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     /**
      * Specifies if the configured Security Realm allows signup.
-     * 
+     *
      * GitLabSecurityRealm will not allow signups through Jenkins.
-     * 
+     *
      * @return true if signup is allowed
      */
     @Override
@@ -73,7 +70,7 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     /**
      * Tries to authenticate a user with the given username and password.
-     * 
+     *
      * @param username the username of the user
      * @param password the password of the user
      * @return a UserDetails object with user information
@@ -81,46 +78,39 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     @Override
     protected UserDetails authenticate(String username, String password) throws AuthenticationException {
-        UserDetails userDetails = null;
-
-        if (isValidUser(username, password)) {
-            userDetails = new User(username, password, true, true, true, true, new GrantedAuthority[] { SecurityRealm.AUTHENTICATED_AUTHORITY });
-        } else {
-            throw new BadCredentialsException("Not a valid username or password");
+        try {
+            // authenticate credentials and create user details
+            return loadUserWithCredentials(username, password);
+        } catch (GitLabApiException e) {
+            // authentication or connection to the API failed
+            throw new BadCredentialsException("Authentication against GitLab failed", e);
         }
-
-        return userDetails;
     }
 
     /**
-     * Checks if a user with matching username and password exists.
-     * 
+     * Gets user details for a user matching a username and password.
+     *
      * @param username the username of the user
-     * @param password  the password of the user
-     * @return true if there exist a user with username and a matching password
+     * @param password the password of the user
+     * @return user details for a user matching the credentials
+     * @throws ApiConnectionFailureException if the connection to the API failed
+     * @throws AuthenticationFailedException if the credentials are invalid
      */
-    private boolean isValidUser(String username, String password) {
-        try {
-            GitLabConfig.getApiClient().getSession(username, password);
-            
-        } catch (ApiConnectionFailureException e) {
-            // Connection failure
-            return false;
-        } catch (AuthenticationFailedException e) {
-            // Authentication failure
-            return false;
-        }
-        
-        return true;
+    private UserDetails loadUserWithCredentials(String username, String password)
+            throws ApiConnectionFailureException, AuthenticationFailedException {
+        GitLabSessionInfo session = GitLabConfig.getApiClient().getSession(username, password);
+
+        // create user details from the session
+        return new GitLabUserDetails(session);
     }
-    
+
     /**
      * Gets user information about the user with the given username.
-     * 
+     *
      * @param username the user of the user
      * @return a UserDetails object with information about the user
      * @throws UsernameNotFoundException if user with username does not exist
-     * @throws DataAccessException will never be thrown
+     * @throws DataAccessException       will never be thrown
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
@@ -130,12 +120,12 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     /**
      * This feature is not supported.
-     * 
+     *
      * Will throw UsernameNotFoundException at all times.
-     * 
-     * @params username the username of the user
+     *
      * @throws UsernameNotFoundException will be thrown at all times
-     * @throws DataAccessException will never be thrown
+     * @throws DataAccessException       will never be thrown
+     * @params username the username of the user
      */
     @Override
     public GroupDetails loadGroupByGroupname(String groupname) throws UsernameNotFoundException, DataAccessException {
@@ -147,8 +137,8 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         /**
          * Returns a new GitLabSecurityRealm object.
-         * 
-         * @param req the http request
+         *
+         * @param req      the http request
          * @param formData form data
          * @return a GitLabSecurityRealm object
          */
@@ -159,7 +149,7 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         /**
          * Gives the name to be displayed by the Jenkins view in the security configuration page.
-         * 
+         *
          * @return the display name
          */
         public String getDisplayName() {
