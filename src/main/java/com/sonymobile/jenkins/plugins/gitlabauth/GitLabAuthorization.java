@@ -162,9 +162,7 @@ public class GitLabAuthorization extends AuthorizationStrategy {
         }
         
         /**
-         * Returns a map of all permission groups and their permissions except permission groups Item and Permission.
-         * 
-         * Item permission group is configured separately in each folder.
+         * Returns a map of all permission groups and their permissions except permission group Permission.
          * 
          * @return a map of permission groups and their respective permissions
          */
@@ -172,8 +170,6 @@ public class GitLabAuthorization extends AuthorizationStrategy {
             List<PermissionGroup> groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
             // Generic permissions, which we don't need
             groups.remove(PermissionGroup.get(Permission.class));
-            // We configure this on each folder item
-            groups.remove(PermissionGroup.get(Item.class));
             
             // Matrix with all permission groups and the permissions belonging to the permission group
             SortedMap<PermissionGroup, List<Permission>> permissionMatrix = new TreeMap<PermissionGroup, List<Permission>>();
