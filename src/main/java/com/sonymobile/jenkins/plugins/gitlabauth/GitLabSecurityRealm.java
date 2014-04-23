@@ -101,7 +101,7 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         GitLabSessionInfo session = GitLabConfig.getApiClient().getSession(username, password);
 
         // create user details from the session
-        return new GitLabUser(session);
+        return new GitLabUserDetails(session);
     }
 
     /**

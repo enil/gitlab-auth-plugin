@@ -12,7 +12,7 @@ import static org.apache.commons.lang.StringUtils.EMPTY;
  *
  * @author Emil Nilsson
  */
-public class GitLabUser implements UserDetails {
+public class GitLabUserDetails implements UserDetails {
     /** The GitLab session information. */
     private final GitLabSessionInfo session;
 
@@ -21,7 +21,7 @@ public class GitLabUser implements UserDetails {
      *
      * @param session the GitLab session
      */
-    public GitLabUser(GitLabSessionInfo session) {
+    public GitLabUserDetails(GitLabSessionInfo session) {
         this.session = session;
     }
 
@@ -54,6 +54,15 @@ public class GitLabUser implements UserDetails {
      */
     public String getUsername() {
         return session.getUsername();
+    }
+    
+    /**
+     * Returns the name of the user.
+     * 
+     * @return the name
+     */
+    public String getName() {
+        return session.getName();
     }
 
     /**

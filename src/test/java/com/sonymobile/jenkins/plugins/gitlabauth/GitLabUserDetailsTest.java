@@ -12,19 +12,19 @@ import static org.junit.Assert.assertThat;
 
 
 /**
- * Tests getting attributes from {@link GitLabUser}.
+ * Tests getting attributes from {@link GitLabUserDetails}.
  *
  * @author Emil Nilsson
  */
-public class GitLabUserTest {
+public class GitLabUserDetailsTest {
     /** A normal GitLab user. */
-    private GitLabUser normalUser;
+    private GitLabUserDetails normalUser;
 
     /** An administrator user. */
-    private GitLabUser adminUser;
+    private GitLabUserDetails adminUser;
 
     /** A blocked user. */
-    private GitLabUser blockedUser;
+    private GitLabUserDetails blockedUser;
 
     /**
      * Creates the GitLab normalUser to test.
@@ -33,9 +33,9 @@ public class GitLabUserTest {
      */
     @Before
     public void setUp() throws IOException {
-        normalUser = new GitLabUser(new GitLabSessionInfo(loadJsonObject("/api/v3/session")));
-        adminUser = new GitLabUser(new GitLabSessionInfo(loadJsonObject("/api/v3/session", "admin")));
-        blockedUser = new GitLabUser(new GitLabSessionInfo(loadJsonObject("/api/v3/session", "blocked")));
+        normalUser = new GitLabUserDetails(new GitLabSessionInfo(loadJsonObject("/api/v3/session")));
+        adminUser = new GitLabUserDetails(new GitLabSessionInfo(loadJsonObject("/api/v3/session", "admin")));
+        blockedUser = new GitLabUserDetails(new GitLabSessionInfo(loadJsonObject("/api/v3/session", "blocked")));
     }
 
     @Test

@@ -114,10 +114,10 @@ public class GitLabSecurityRealmTest {
         // get authentication from the web client
         Authentication authentication = getAuthentication();
         assertThat("User should be logged in", authentication, is(not(Jenkins.ANONYMOUS)));
-        assertThat(authentication.getPrincipal(), is(instanceOf(GitLabUser.class)));
+        assertThat(authentication.getPrincipal(), is(instanceOf(GitLabUserDetails.class)));
 
         // get the authenticated user
-        GitLabUser user = (GitLabUser)authentication.getPrincipal();
+        GitLabUserDetails user = (GitLabUserDetails)authentication.getPrincipal();
         assertThat("username", is(user.getUsername()));
         assertThat(2, is(user.getId()));
         assertThat("user@example.com", is(user.getEmail()));
