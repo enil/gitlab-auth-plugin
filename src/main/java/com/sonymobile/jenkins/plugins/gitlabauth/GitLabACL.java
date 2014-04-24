@@ -100,6 +100,13 @@ public class GitLabACL extends ACL {
         if (auth.isAuthenticated()) {
             if(auth.getPrincipal() instanceof GitLabUserDetails) {
                 if(isAdmin((GitLabUserDetails) auth.getPrincipal())) {
+                    boolean adminPermission = checkRolePermission(JAL_ADMIN, permission);
+                    
+                    if(adminPermission) {
+                        return true;
+                    } else {
+                        // Should continue to check if admin has permission through the folder matrix.
+                    }
                     return checkRolePermission(JAL_ADMIN, permission);
                 } else {
                     return checkRolePermission(JAL_LOGGED_IN, permission);

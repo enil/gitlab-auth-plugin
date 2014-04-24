@@ -112,15 +112,15 @@ public class GitLabAuthorization extends AuthorizationStrategy {
     /**
      * Checks if the given GitLab role has the given permission.
      * 
-     * Mainly used to check if a checkbox should be checked or not in the config file.
+     * Mainly used to check if a checkbox should be checked or not on the config page.
      * 
      * @param role the role name
-     * @param p the permission
+     * @param permission the permission
      * @return true if the given role has the given permission
      */
-    public boolean isPermissionSet(String role, Permission p) {
-        if(rootACL != null && role != null && p != null) {
-            return rootACL.isPermissionSet(role, p);
+    public boolean isPermissionSet(String role, Permission permission) {
+        if(rootACL != null && role != null && permission != null) {
+            return rootACL.isPermissionSet(role, permission);
         }
         return false;
     }
@@ -177,9 +177,7 @@ public class GitLabAuthorization extends AuthorizationStrategy {
             for (PermissionGroup pg : groups) {
                 permissionMatrix.put(pg, new ArrayList<Permission>());
                 for (Permission p : pg.getPermissions()) {
-                    if (p.enabled) {
-                        permissionMatrix.get(pg).add(p);
-                    }
+                    permissionMatrix.get(pg).add(p);
                 }
             }
             
