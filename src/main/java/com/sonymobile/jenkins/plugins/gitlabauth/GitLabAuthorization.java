@@ -39,9 +39,11 @@ import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.StaplerRequest;
 
+import com.cloudbees.hudson.plugins.folder.Folder;
+
 import hudson.Extension;
+import hudson.model.AbstractItem;
 import hudson.model.Descriptor;
-import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
@@ -107,6 +109,22 @@ public class GitLabAuthorization extends AuthorizationStrategy {
     @Override
     public ACL getRootACL() {
         return rootACL;
+    }
+    
+    @Override
+    public ACL getACL(AbstractItem item) {
+        if(item instanceof Folder) {
+            GitLabFolderAuthorization folderAuth = ((Folder) item).getProperties().get(GitLabFolderAuthorization.class);
+            
+            if (folderAuth == null) {
+                System.out.println("folderAuth is null");
+                return getRootACL();
+            }
+            return folderAuth.getACL();
+        } else {
+            // Work your way up until you find a Folder and return its ACL.
+        }
+        return getRootACL();
     }
     
     /**
