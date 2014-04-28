@@ -87,7 +87,7 @@ public class GitLab {
      * @throws GitLabApiException if the connection against GitLab failed
      */
     public static List<GitLabGroupInfo> getGroups() throws GitLabApiException {
-        throw new UnsupportedOperationException("Not implemented");
+        return GitLabConfig.getApiClient().getGroups();
     }
 
     /**
