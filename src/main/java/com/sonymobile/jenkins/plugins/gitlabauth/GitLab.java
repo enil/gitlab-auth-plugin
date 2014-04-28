@@ -25,11 +25,13 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
+import com.sonymobile.gitlab.api.GitLabApiClient;
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.gitlab.model.GitLabGroupMemberInfo;
 import com.sonymobile.gitlab.model.GitLabUserInfo;
+import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
 
 import java.util.List;
 
@@ -40,7 +42,7 @@ import java.util.List;
  */
 public class GitLab {
     private GitLab() {
-        /* no public constructor, class is singleton */
+        /* no public constructor */
     }
 
     /**
@@ -57,13 +59,25 @@ public class GitLab {
     /**
      * Gets information about a member in a group.
      *
-     * @param userId ID of the user
+     * @param userId  ID of the user
      * @param groupId ID of the group
      * @return group membership information or null user or group doesn't exist or user isn't member of group
      * @throws GitLabApiException if the connection against GitLab failed
      */
     public static GitLabGroupMemberInfo getGroupMember(int userId, int groupId) throws GitLabApiException {
-        throw new UnsupportedOperationException("Not implemented");
+        GitLabApiClient apiClient = GitLabConfig.getApiClient();
+
+        List<GitLabGroupMemberInfo> groupMembers = apiClient.getGroupMembers(groupId);
+
+        // find user in group
+        for (final GitLabGroupMemberInfo groupMember : groupMembers) {
+            if (groupMember.getId() == userId) {
+                return groupMember;
+            }
+        }
+
+        // not found
+        return null;
     }
 
     /**
@@ -90,12 +104,12 @@ public class GitLab {
     /**
      * Get access level for a member in a group.
      *
-     * @param userId ID of the member
+     * @param userId  ID of the member
      * @param groupId ID of the group
      * @return access level for the member
      * @throws GitLabApiException if the connection against GitLab failed
      */
-    public static GitLabAccessLevel getAccessLevelInGroup(int userId, int groupId) {
+    public static GitLabAccessLevel getAccessLevelInGroup(int userId, int groupId) throws GitLabApiException {
         // todo: add NONE access level and return if user isn't a group member
         throw new UnsupportedOperationException("Not implemented");
     }
