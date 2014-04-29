@@ -40,6 +40,7 @@ import com.cloudbees.hudson.plugins.folder.FolderProperty;
 import com.cloudbees.hudson.plugins.folder.FolderPropertyDescriptor;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
+import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabFolderACL;
 
 import hudson.Extension;
 import hudson.model.Item;
@@ -54,14 +55,6 @@ import hudson.security.PermissionGroup;
  */
 public class GitLabFolderAuthorization extends FolderProperty<Folder> {
     private GitLabFolderACL folderACL;
-    
-    public static final String[] gitLabRoles = {
-        GitLabAccessLevel.OWNER.toString(),
-        GitLabAccessLevel.MASTER.toString(),
-        GitLabAccessLevel.DEVELOPER.toString(),
-        GitLabAccessLevel.REPORTER.toString(),
-        GitLabAccessLevel.GUEST.toString()
-    };
     
     public GitLabFolderAuthorization(Map<String, List<Permission>> grantedFolderPermissions) {
         this.folderACL = new GitLabFolderACL(grantedFolderPermissions);
@@ -140,7 +133,7 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
          * @return a list with all roles
          */
         public List<String> getAllRoles() {
-            List<String> allRoles = new ArrayList<String>(Arrays.asList(gitLabRoles));
+            List<String> allRoles = new ArrayList<String>(Arrays.asList(GitLabAccessLevel.all));
             allRoles.addAll(Arrays.asList(JenkinsAccessLevels.all));
             
             return allRoles;

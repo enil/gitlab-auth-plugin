@@ -40,10 +40,13 @@ import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
+import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabGlobalACL;
 
 import hudson.Extension;
+import hudson.model.ItemGroup;
 import hudson.model.AbstractItem;
 import hudson.model.Descriptor;
+import hudson.model.Job;
 import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
@@ -111,6 +114,23 @@ public class GitLabAuthorization extends AuthorizationStrategy {
         return rootACL;
     }
     
+    @Override
+    public ACL getACL(Job<?,?> project) {
+        if(project.getParent() instanceof Folder) {
+            return getACL((Folder) project.getParent());
+        }
+        return getRootACL();
+    }
+    
+    public ACL getACL(Folder folder) {
+        GitLabFolderAuthorization folderAuth = folder.getProperties().get(GitLabFolderAuthorization.class);
+        
+        if(folderAuth != null) {
+            return folderAuth.getACL();
+        }
+        return getRootACL();
+    }
+    
     /**
      * Tries to get the ACL of a folder.
      * 
@@ -118,15 +138,8 @@ public class GitLabAuthorization extends AuthorizationStrategy {
      */
     @Override
     public ACL getACL(AbstractItem item) {
-        if(item instanceof Folder) {
-            GitLabFolderAuthorization folderAuth = ((Folder) item).getProperties().get(GitLabFolderAuthorization.class);
-            
-            if (folderAuth == null) {
-                return getRootACL();
-            }
-            return folderAuth.getACL();
-        } else {
-            // Work your way up until you find a Folder and return its ACL.
+        if (item instanceof Folder) {
+            return getACL((Folder) item);
         }
         return getRootACL();
     }
