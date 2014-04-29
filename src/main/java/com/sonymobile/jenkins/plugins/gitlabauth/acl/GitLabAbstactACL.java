@@ -32,6 +32,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.acegisecurity.Authentication;
+
+import com.sonymobile.jenkins.plugins.gitlabauth.GitLabUserDetails;
+
 /**
  * Abstract ACL class for other GitLab ACLs to extend.
  * 
@@ -48,6 +52,17 @@ public abstract class GitLabAbstactACL extends ACL {
      */
     protected GitLabAbstactACL(Map<String, List<Permission>> grantedPermissions) {
         this.grantedPermissions = grantedPermissions;
+    }
+    
+    /**
+     * Checks if the user is logged in and if the principal is a 
+     * GitLabUserDetails object.
+     * 
+     * @param auth the authentication object
+     * @return true if logged in and the principal object is a GitLabUserDetails object
+     */
+    protected boolean isLoggedIn(Authentication auth) {
+        return auth.isAuthenticated() && auth.getPrincipal() instanceof GitLabUserDetails;
     }
     
     /**

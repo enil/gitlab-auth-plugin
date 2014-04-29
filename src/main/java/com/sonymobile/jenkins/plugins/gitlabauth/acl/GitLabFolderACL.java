@@ -32,8 +32,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import jenkins.model.Jenkins;
+
 import org.acegisecurity.Authentication;
 
+import com.sonymobile.jenkins.plugins.gitlabauth.GitLabAuthorization;
 import com.sonymobile.jenkins.plugins.gitlabauth.GitLabUserDetails;
 import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevels;
 import com.thoughtworks.xstream.converters.Converter;
@@ -67,18 +70,37 @@ public class GitLabFolderACL extends GitLabAbstactACL {
      */
     @Override
     public boolean hasPermission(Authentication auth, Permission permission) {
-        if (auth.isAuthenticated()) {
-            if(auth.getPrincipal() instanceof GitLabUserDetails) {
-                if (((GitLabUserDetails) auth.getPrincipal()).getUsername().equals("andreas")) {
-                    return true;
-                } else {
-                    return isPermissionSet(JenkinsAccessLevels.LOGGED_IN, permission);
-                }
+        if (isLoggedIn(auth)) {
+            if(hasGlobalPermission(auth, permission)) {
+               return true;
             }
+            
+//            if (((GitLabUserDetails) auth.getPrincipal()).getUsername().equals("andreas")) {
+//                return true;
+//            } else {
+//                return isPermissionSet(JenkinsAccessLevels.LOGGED_IN, permission);
+//            }
         }
         return isPermissionSet(JenkinsAccessLevels.ANONYMOUS, permission);
     }
     
+    /**
+     * Checks if the user has global access rights.
+     * 
+     * @param auth       the authentication
+     * @param permission the permission
+     * @return true if the given user has the given permission
+     */
+    private boolean hasGlobalPermission(Authentication auth, Permission permission) {
+        if(Jenkins.getInstance().getAuthorizationStrategy() instanceof GitLabAuthorization) {
+            GitLabAuthorization authorization = (GitLabAuthorization) Jenkins.getInstance().getAuthorizationStrategy();
+            
+            return authorization.getRootACL().hasPermission(auth, permission);
+        }
+        return false;
+    }
+    
+
     /**
      * Used to store the permission id instead of the reference to the 
      * permission objects to the config.xml file.

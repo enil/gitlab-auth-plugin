@@ -89,13 +89,12 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
      */
     @Override
     public boolean hasPermission(Authentication auth, Permission permission) {
-        if (auth.isAuthenticated()) {
-            if(auth.getPrincipal() instanceof GitLabUserDetails) {
-                if(isAdmin(((GitLabUserDetails) auth.getPrincipal()).getUsername())) {
-                    return isPermissionSet(JenkinsAccessLevels.ADMIN, permission);
-                } else {
-                    return isPermissionSet(JenkinsAccessLevels.LOGGED_IN, permission);
-                }
+        if(isLoggedIn(auth)) {
+            String username = ((GitLabUserDetails) auth.getPrincipal()).getUsername();
+            if(isAdmin(username)) {
+                return isPermissionSet(JenkinsAccessLevels.ADMIN, permission);
+            } else {
+                return isPermissionSet(JenkinsAccessLevels.LOGGED_IN, permission);
             }
         }
         return isPermissionSet(JenkinsAccessLevels.ANONYMOUS, permission);
@@ -205,7 +204,6 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
                 
                 reader.moveUp();
             }
-            
             return new GitLabGlobalACL(StringUtils.join(adminUsernames.iterator(), ", "), useGitLabAdmins, grantedPermissions);
         }
     }
