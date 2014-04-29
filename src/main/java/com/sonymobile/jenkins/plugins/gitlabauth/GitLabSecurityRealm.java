@@ -26,7 +26,6 @@
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
 import com.sonymobile.gitlab.exceptions.ApiConnectionFailureException;
-import com.sonymobile.gitlab.exceptions.AuthenticationFailedException;
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabSessionInfo;
 import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
@@ -74,7 +73,7 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * @param username the username of the user
      * @param password the password of the user
      * @return a UserDetails object with user information
-     * @throws AuthenticationException if the authentication fails
+     * @throws AuthenticationException if the authentication failed
      */
     @Override
     protected UserDetails authenticate(String username, String password) throws AuthenticationException {
@@ -93,11 +92,10 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * @param username the username of the user
      * @param password the password of the user
      * @return user details for a user matching the credentials
-     * @throws ApiConnectionFailureException if the connection to the API failed
-     * @throws AuthenticationFailedException if the credentials are invalid
+     * @throws ApiConnectionFailureException if the API connection failed
      */
     private UserDetails loadUserWithCredentials(String username, String password)
-            throws ApiConnectionFailureException, AuthenticationFailedException {
+            throws GitLabApiException {
         GitLabSessionInfo session = GitLabConfig.getApiClient().getSession(username, password);
 
         // create user details from the session
