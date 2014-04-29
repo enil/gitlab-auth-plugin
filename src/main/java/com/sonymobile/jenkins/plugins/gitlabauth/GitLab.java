@@ -53,7 +53,7 @@ public class GitLab {
      * @throws GitLabApiException if the connection against GitLab failed
      */
     public static GitLabUserInfo getUser(int userId) throws GitLabApiException {
-        throw new UnsupportedOperationException("Not implemented");
+        return GitLabConfig.getApiClient().getUser(userId);
     }
 
     /**
@@ -98,7 +98,9 @@ public class GitLab {
      * @throws GitLabApiException if the connection against GitLab failed
      */
     public static boolean isAdmin(int userId) throws GitLabApiException {
-        throw new UnsupportedOperationException("Not implemented");
+        GitLabUserInfo user = getUser(userId);
+
+        return user != null && user.isAdmin();
     }
 
     /**

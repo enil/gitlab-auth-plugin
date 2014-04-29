@@ -26,10 +26,11 @@
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
 import com.sonymobile.gitlab.api.GitLabApiClient;
+import com.sonymobile.gitlab.model.FullGitLabUserInfo;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.gitlab.model.GitLabGroupMemberInfo;
+import com.sonymobile.gitlab.model.GitLabUserInfo;
 import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
-import org.easymock.IExpectationSetters;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -77,37 +78,43 @@ public class GitLabTest {
     }
 
     @Test
-    public void getGroupMember() throws Exception {
-        expectGetGroupMembers(/* groupId = */ 1);
+    public void getUser() throws Exception {
+        // user 1 exists, user 1000 does not
+        expect(mockApiClient.getUser(1)).andReturn(loadUser());
+        expect(mockApiClient.getUser(1000)).andReturn(null);
         replay(mockApiClient);
 
-        GitLabGroupMemberInfo groupMember = GitLab.getGroupMember(/* userId = */ 1, /* groupId = */ 1);
+        GitLabUserInfo goodUser = GitLab.getUser(1);
+        GitLabUserInfo badUser = GitLab.getUser(1000);
 
-        assertThat("user should be member of group", groupMember, is(notNullValue()));
-        assertThat(1, is(groupMember.getId()));
-        assertThat(1, is(groupMember.getGroupId()));
+        assertThat("user 1 should exist", goodUser, is(notNullValue()));
+        assertThat(1, is(goodUser.getId()));
+
+        assertThat("user 1000 should not exist", badUser, is(nullValue()));
 
         verify(mockApiClient);
     }
 
-    /**
-     * Attempts to get a group member not belonging to a group.
-     */
     @Test
-    public void getNonexistentGroupMember() throws Exception {
-        expectGetGroupMembers(1);
+    public void getGroupMember() throws Exception {
+        expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).times(2);
         replay(mockApiClient);
 
-        GitLabGroupMemberInfo groupMember = GitLab.getGroupMember(/* userId = */ 1000, /* groupId = */ 1);
+        GitLabGroupMemberInfo goodMember = GitLab.getGroupMember(/* userId = */ 1, /* groupId = */ 1);
+        GitLabGroupMemberInfo badMember = GitLab.getGroupMember(/* userId = */ 1000, /* groupId = */ 1);
 
-        assertThat("user should not be member of group", groupMember, is(nullValue()));
+        assertThat("user 1 should be a member of the group", goodMember, is(notNullValue()));
+        assertThat(1, is(goodMember.getId()));
+        assertThat(1, is(goodMember.getGroupId()));
+
+        assertThat("user 1000 should not be a member of the group", badMember, is(nullValue()));
 
         verify(mockApiClient);
     }
 
     @Test
     public void getGroups() throws Exception {
-        expectGetGroups();
+        expect(mockApiClient.getGroups()).andReturn(loadGroups());
         replay(mockApiClient);
 
         List<GitLabGroupInfo> groups = GitLab.getGroups();
@@ -116,46 +123,78 @@ public class GitLabTest {
 
         GitLabGroupInfo group = groups.get(0);
         assertThat(1, is(group.getId()));
-        assertThat("Group Name", is(group.getName()));
-        assertThat("groupname", is(group.getPath()));
+
+        verify(mockApiClient);
+    }
+
+    @Test
+    public void isAdmin() throws Exception {
+        // user 1 is an admin, user 2 is not
+        expect(mockApiClient.getUser(1)).andReturn(loadAdminUser());
+        expect(mockApiClient.getUser(2)).andReturn(loadUser());
+        replay(mockApiClient);
+
+        assertThat(GitLab.isAdmin(1), is(true));
+        assertThat(GitLab.isAdmin(2), is(false));
 
         verify(mockApiClient);
     }
 
     /**
-     * Adds mock for {@link GitLabApiClient#getGroupMembers(int)} to return a list of group members loaded from a
-     * JSON file.
+     * Loads a JSON file with a user.
      *
-     * @param groupId the group ID to expect
-     * @return an expectation setter for chaining
+     * @param variant the variant name
+     * @return a user
+     * @throws Exception if loading the file failed
      */
-    private IExpectationSetters<?> expectGetGroupMembers(int groupId) {
-        try {
-            // make getGroupMembers() return group members loaded from the JSON file
-            return expect(mockApiClient.getGroupMembers(groupId)).andReturn(jsonFile("api/v3/groups/1/members")
-                    .withType(GitLabGroupMemberInfo.class)
-                    .andParameters(groupId) // group ID
-                    .loadAsArray());
-        } catch (Exception e) {
-            /* method cannot throw any exceptions in expect() for a mock */
-            throw new RuntimeException(e);
-        }
+    private GitLabUserInfo loadUser(String variant) throws Exception {
+        return jsonFile("api/v3/users/1")
+                .withVariant(variant)
+                .withType(FullGitLabUserInfo.class)
+                .loadAsObject();
     }
 
     /**
-     * Adds mock for {@link GitLabApiClient#getGroups()}} to return a list of groups loaded from a JSON file.
+     * Load a JSON file with a normal user.
      *
-     * @return an expectation setter for chaining
+     * @see #loadUser(String)
      */
-    private IExpectationSetters<?> expectGetGroups() {
-        try {
-            // make getGroups() return groups loaded from the JSON file
-            return expect(mockApiClient.getGroups()).andReturn(jsonFile("api/v3/groups")
-                    .withType(GitLabGroupInfo.class)
-                    .loadAsArray());
-        } catch (Exception e) {
-            /* method cannot throw any exceptions in expect() for a mock */
-            throw new RuntimeException(e);
-        }
+    private GitLabUserInfo loadUser() throws Exception {
+        return loadUser(null);
+    }
+
+    /**
+     * Load a JSON file with an admin user.
+     *
+     * @see #loadUser(String)
+     */
+    private GitLabUserInfo loadAdminUser() throws Exception {
+        return loadUser("admin");
+    }
+
+    /**
+     * Loads the JSON file with group members.
+     *
+     * @param groupId the group ID
+     * @return a list of group members
+     * @throws Exception if loading the file failed
+     */
+    private List<GitLabGroupMemberInfo> loadGroupMembers(int groupId) throws Exception {
+        return jsonFile("api/v3/groups/1/members")
+                .withType(GitLabGroupMemberInfo.class)
+                .andParameters(groupId)
+                .loadAsArray();
+    }
+
+    /**
+     * Loads the JSON file with all groups.
+     *
+     * @return a list of groups
+     * @throws Exception if loading the file failed
+     */
+    private List<GitLabGroupInfo> loadGroups() throws Exception {
+        return jsonFile("api/v3/groups")
+                .withType(GitLabGroupInfo.class)
+                .loadAsArray();
     }
 }
