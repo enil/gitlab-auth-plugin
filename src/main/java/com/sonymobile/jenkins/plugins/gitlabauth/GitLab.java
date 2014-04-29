@@ -112,7 +112,8 @@ public class GitLab {
      * @throws GitLabApiException if the connection against GitLab failed
      */
     public static GitLabAccessLevel getAccessLevelInGroup(int userId, int groupId) throws GitLabApiException {
-        // todo: add NONE access level and return if user isn't a group member
-        throw new UnsupportedOperationException("Not implemented");
+        GitLabGroupMemberInfo member = getGroupMember(userId, groupId);
+
+        return member == null ? GitLabAccessLevel.NONE : member.getAccessLevel();
     }
 }

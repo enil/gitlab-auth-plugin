@@ -27,6 +27,7 @@ package com.sonymobile.jenkins.plugins.gitlabauth;
 
 import com.sonymobile.gitlab.api.GitLabApiClient;
 import com.sonymobile.gitlab.model.FullGitLabUserInfo;
+import com.sonymobile.gitlab.model.GitLabAccessLevel;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.gitlab.model.GitLabGroupMemberInfo;
 import com.sonymobile.gitlab.model.GitLabUserInfo;
@@ -100,8 +101,8 @@ public class GitLabTest {
         expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).times(2);
         replay(mockApiClient);
 
-        GitLabGroupMemberInfo goodMember = GitLab.getGroupMember(/* userId = */ 1, /* groupId = */ 1);
-        GitLabGroupMemberInfo badMember = GitLab.getGroupMember(/* userId = */ 1000, /* groupId = */ 1);
+        GitLabGroupMemberInfo goodMember = GitLab.getGroupMember(/* userId */ 1, /* groupId */ 1);
+        GitLabGroupMemberInfo badMember = GitLab.getGroupMember(/* userId */ 1000, /* groupId */ 1);
 
         assertThat("user 1 should be a member of the group", goodMember, is(notNullValue()));
         assertThat(1, is(goodMember.getId()));
@@ -136,6 +137,18 @@ public class GitLabTest {
 
         assertThat(GitLab.isAdmin(1), is(true));
         assertThat(GitLab.isAdmin(2), is(false));
+
+        verify(mockApiClient);
+    }
+
+    @Test
+    public void getAccessLevelInGroup() throws Exception {
+        expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).times(2);
+        replay(mockApiClient);
+
+        // user 1 is an developer, user 1000 isn't member of the group
+        assertThat(GitLab.getAccessLevelInGroup(/* userId */ 1, /* groupId */ 1), is(GitLabAccessLevel.DEVELOPER));
+        assertThat(GitLab.getAccessLevelInGroup(/* userId */ 1000, /* groupId */ 1), is(GitLabAccessLevel.NONE));
 
         verify(mockApiClient);
     }
