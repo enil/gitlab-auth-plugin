@@ -106,7 +106,7 @@ public class GitLabUserDetails implements UserDetails {
      *
      * This is equivalent to whether the account is active or blocked in GitLab.
      *
-     * @returntrue if the account is enabled
+     * @return true if the account is enabled
      */
     public boolean isEnabled() {
         return session.isActive();

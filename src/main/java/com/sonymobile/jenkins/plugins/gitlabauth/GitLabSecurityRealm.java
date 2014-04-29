@@ -123,9 +123,9 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * Will throw UsernameNotFoundException at all times.
      *
+     * @param username the username of the user
      * @throws UsernameNotFoundException will be thrown at all times
      * @throws DataAccessException       will never be thrown
-     * @params username the username of the user
      */
     @Override
     public GroupDetails loadGroupByGroupname(String groupname) throws UsernameNotFoundException, DataAccessException {

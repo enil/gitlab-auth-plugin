@@ -56,17 +56,17 @@ import hudson.security.PermissionGroup;
  */
 public class GitLabAuthorization extends AuthorizationStrategy {
     /** ACL for GitLab */
-    private final GitLabACL rootACL;
+    private final GitLabGlobalACL rootACL;
 
     /**
      * Creates an Authorization Strategy for GitLab.
      * 
-     * @param adminUsernames the admin usernames seperated by a comma
-     * @param useGitLabAdmins if GitLab admins should be Jenkins admins
-     * @param grantedJenkinsPermissions map of all Jenkins roles and their respective granted permissions
+     * @param adminUsernames     the admin usernames seperated by a comma
+     * @param useGitLabAdmins    if GitLab admins should be Jenkins admins
+     * @param grantedPermissions map of all Jenkins roles and their respective granted permissions
      */
-    public GitLabAuthorization(String adminUsernames, boolean useGitLabAdmins, Map<String, List<Permission>> grantedJenkinsPermissions) {
-        rootACL = new GitLabACL(adminUsernames, useGitLabAdmins, grantedJenkinsPermissions);
+    public GitLabAuthorization(String adminUsernames, boolean useGitLabAdmins, Map<String, List<Permission>> grantedPermissions) {
+        rootACL = new GitLabGlobalACL(adminUsernames, useGitLabAdmins, grantedPermissions);
     }
     
     /**
@@ -111,13 +111,17 @@ public class GitLabAuthorization extends AuthorizationStrategy {
         return rootACL;
     }
     
+    /**
+     * Tries to get the ACL of a folder.
+     * 
+     * @return an ACL
+     */
     @Override
     public ACL getACL(AbstractItem item) {
         if(item instanceof Folder) {
             GitLabFolderAuthorization folderAuth = ((Folder) item).getProperties().get(GitLabFolderAuthorization.class);
             
             if (folderAuth == null) {
-                System.out.println("folderAuth is null");
                 return getRootACL();
             }
             return folderAuth.getACL();
@@ -132,7 +136,7 @@ public class GitLabAuthorization extends AuthorizationStrategy {
      * 
      * Mainly used to check if a checkbox should be checked or not on the config page.
      * 
-     * @param role the role name
+     * @param role       the role name
      * @param permission the permission
      * @return true if the given role has the given permission
      */
@@ -180,7 +184,8 @@ public class GitLabAuthorization extends AuthorizationStrategy {
         }
         
         /**
-         * Returns a map of all permission groups and their permissions except permission group Permission.
+         * Returns a map of all permission groups and their permissions 
+         * except permission group Permission.
          * 
          * @return a map of permission groups and their respective permissions
          */
@@ -208,7 +213,7 @@ public class GitLabAuthorization extends AuthorizationStrategy {
          * @return a list with all roles
          */
         public List<String> getAllRoles() {
-            return new ArrayList<String>(Arrays.asList(GitLabACL.jenkinsAccessLevels));
+            return new ArrayList<String>(Arrays.asList(JenkinsAccessLevels.all));
         }
     }
 }

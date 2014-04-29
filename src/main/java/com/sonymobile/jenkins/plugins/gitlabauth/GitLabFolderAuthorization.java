@@ -32,10 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
-import org.acegisecurity.Authentication;
 import org.kohsuke.stapler.StaplerRequest;
 
 import com.cloudbees.hudson.plugins.folder.FolderProperty;
@@ -83,8 +81,8 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
      * 
      * Mainly used to check if a checkbox should be checked or not on the config page.
      * 
-     * @param role          the role name
-     * @param permission    the permission
+     * @param role       the role name
+     * @param permission the permission
      * @return true if the given role has the given permission
      */
     public boolean isPermissionSet(String role, Permission permission) {
@@ -143,7 +141,7 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
          */
         public List<String> getAllRoles() {
             List<String> allRoles = new ArrayList<String>(Arrays.asList(gitLabRoles));
-            allRoles.addAll(Arrays.asList(GitLabACL.jenkinsAccessLevels));
+            allRoles.addAll(Arrays.asList(JenkinsAccessLevels.all));
             
             return allRoles;
         }
@@ -156,62 +154,6 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
             } catch (NoClassDefFoundError e) {
                 return false;
             }
-        }
-    }
-    
-    public static class GitLabFolderACL extends ACL {
-        private Map<String, List<Permission>> grantedFolderPermissions;
-        
-        /** Jenkins roles */
-        private static final String JAL_ADMIN = "Admin";
-        private static final String JAL_LOGGED_IN = "Logged In";
-        private static final String JAL_ANONYMOUS = "Anonymous";
-        
-        public GitLabFolderACL(Map<String, List<Permission>> grantedFolderPermissions) {
-            this.grantedFolderPermissions = grantedFolderPermissions;
-        }
-
-        /**
-         * Checks if the given principal has permission to use the permission.
-         * 
-         * @param auth          the authentication object
-         * @param permission    the permission
-         * @return true if the given principal has permission
-         */
-        @Override
-        public boolean hasPermission(Authentication auth, Permission permission) {
-            if (auth.isAuthenticated()) {
-                if(auth.getPrincipal() instanceof GitLabUserDetails) {
-                    return true;
-                }
-            }
-            return checkRolePermission(JAL_ANONYMOUS, permission);
-        }
-        
-        /**
-         * Checks if the given Jenkins role has the given permission.
-         * 
-         * @param role          the role
-         * @param permission    the permission
-         * @return true if the role has permission
-         */
-        public boolean isPermissionSet(String role, Permission permission) {
-            if(grantedFolderPermissions.containsKey(role)) {
-                return grantedFolderPermissions.get(role).contains(permission);
-            }
-            return false;
-        }
-        
-        /**
-         * Checks if the given role has the given permission.
-         * 
-         * @param role          the role
-         * @param permission    the permission
-         * @return true if the role has the given permission else false
-         */
-        private boolean checkRolePermission(String role, Permission permission) {
-            List<Permission> rolePermissions = grantedFolderPermissions.get(role);
-            return (rolePermissions != null) ? rolePermissions.contains(permission) : false;
         }
     }
 }
