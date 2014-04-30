@@ -25,6 +25,8 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
+import com.google.common.base.Ticker;
+import com.google.common.cache.CacheBuilder;
 import com.sonymobile.gitlab.api.GitLabApiClient;
 import com.sonymobile.gitlab.exceptions.GroupNotFoundException;
 import com.sonymobile.gitlab.exceptions.UserNotFoundException;
@@ -42,11 +44,13 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static com.sonymobile.gitlab.helpers.JsonFileLoader.jsonFile;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -66,8 +70,17 @@ import static org.powermock.reflect.Whitebox.invokeMethod;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(GitLabConfig.class)
 public class GitLabTest {
+    /** The number of nanoseconds in a second, for the ticker. */
+    private static final long SECONDS = TimeUnit.SECONDS.toNanos(1);
+
+    /** The number of nanoseconds in a minute, for the ticker. */
+    private static final long MINUTES = TimeUnit.MINUTES.toNanos(1);
+
     /** A mock for the GitLab API client returned by GitLabConfig. */
     private GitLabApiClient mockApiClient;
+
+    /** A mock ticker for cache tests. */
+    private MockTicker mockTicker;
 
     /**
      * Prepares tests by adding a mock for the GitLab API client.
@@ -82,9 +95,16 @@ public class GitLabTest {
         expect(GitLabConfig.getApiClient()).andReturn(mockApiClient).anyTimes();
         PowerMock.replay(GitLabConfig.class);
 
+        // create ticker for testing cache
+        mockTicker = new MockTicker();
+
+        // create singleton implementation for GitLab using the mock ticker
+        Object implementation = invokeConstructor(getInnerClassType(GitLab.class, "Implementation"),
+                new Class<?>[] { CacheBuilder.class },
+                new Object[] { CacheBuilder.newBuilder().ticker(mockTicker) });
+
         // replace the singleton implementation instance of GitLab
-        invokeMethod(GitLab.class, "setInstance", invokeConstructor(getInnerClassType(GitLab.class,
-                "Implementation")));
+        invokeMethod(GitLab.class, "setInstance", implementation);
     }
 
     @Test
@@ -103,6 +123,44 @@ public class GitLabTest {
         assertThat("user 1000 should not exist", badUser, is(nullValue()));
 
         verify(mockApiClient);
+    }
+
+    /**
+     * Tests caching with {@link GitLab#getUser(int)}.
+     */
+    @Test
+    public void cachedGetUser() throws Exception {
+        // before cache invalidation
+        {
+            // should only access API once for both method calls
+            expect(mockApiClient.getUser(1)).andReturn(loadUser()).once();
+            replay(mockApiClient);
+
+            assertThat("username", is(GitLab.getUser(1).getUsername()));
+
+            // advance time without forcing cache to invalidate
+            mockTicker.value += 10 * SECONDS;
+            assertThat("username", is(GitLab.getUser(1).getUsername()));
+
+            verify(mockApiClient);
+        }
+
+        reset(mockApiClient);
+
+        // advance time to force the cache to invalidate
+        mockTicker.value += 1 * MINUTES;
+
+        // after cache invalidation
+        {
+            // return an updated user object
+            expect(mockApiClient.getUser(1)).andReturn(loadUser("newer")).once();
+            replay(mockApiClient);
+
+            // should access API again
+            assertThat("newusername", is(GitLab.getUser(1).getUsername()));
+
+            verify(mockApiClient);
+        }
     }
 
     @Test
@@ -125,6 +183,44 @@ public class GitLabTest {
         verify(mockApiClient);
     }
 
+    /**
+     * Tests caching with {@link GitLab#getGroupMember(int, int)}}.
+     */
+    @Test
+    public void cachedGetGroupMember() throws Exception {
+        // before cache invalidation
+        {
+            // should only access API once for both method calls
+            expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).once();
+            replay(mockApiClient);
+
+            assertThat("username", is(GitLab.getGroupMember(1, 1).getUsername()));
+
+            // advance time without forcing cache to invalidate
+            mockTicker.value += 10 * SECONDS;
+            assertThat("username", is(GitLab.getGroupMember(1, 1).getUsername()));
+
+            verify(mockApiClient);
+        }
+
+        reset(mockApiClient);
+
+        // advance time to force the cache to invalidate
+        mockTicker.value += 1 * MINUTES;
+
+        // after cache invalidation
+        {
+            // return an updated member object
+            expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1, "newer")).once();
+            replay(mockApiClient);
+
+            // should access API again
+            assertThat("newusername", is(GitLab.getGroupMember(1, 1).getUsername()));
+
+            verify(mockApiClient);
+        }
+    }
+
     @Test
     public void getGroups() throws Exception {
         expect(mockApiClient.getGroups()).andReturn(loadGroups());
@@ -138,6 +234,41 @@ public class GitLabTest {
         assertThat(1, is(group.getId()));
 
         verify(mockApiClient);
+    }
+
+    @Test
+    public void cachedGetGroups() throws Exception {
+        // before cache invalidation
+        {
+            // should only access API once for both method calls
+            expect(mockApiClient.getGroups()).andReturn(loadGroups()).once();
+            replay(mockApiClient);
+
+            assertThat(GitLab.getGroups(), hasSize(1));
+
+            // advance time without forcing cache to invalidate
+            mockTicker.value += 10 * SECONDS;
+            assertThat(GitLab.getGroups(), hasSize(1));
+
+            verify(mockApiClient);
+        }
+
+        reset(mockApiClient);
+
+        // advance time to force the cache to invalidate
+        mockTicker.value += 1 * MINUTES;
+
+        // after cache invalidation
+        {
+            // return an updated member object
+            expect(mockApiClient.getGroups()).andReturn(loadGroups("newer")).once();
+            replay(mockApiClient);
+
+            // should access API again
+            assertThat(GitLab.getGroups(), hasSize(2));
+
+            verify(mockApiClient);
+        }
     }
 
     @Test
@@ -200,28 +331,63 @@ public class GitLabTest {
     }
 
     /**
-     * Loads the JSON file with group members.
+     * Loads a JSON file with group members.
      *
+     * @param variant the variant name
      * @param groupId the group ID
      * @return a list of group members
      * @throws Exception if loading the file failed
      */
-    private List<GitLabGroupMemberInfo> loadGroupMembers(int groupId) throws Exception {
+    private List<GitLabGroupMemberInfo> loadGroupMembers(int groupId, String variant) throws Exception {
         return jsonFile("api/v3/groups/1/members")
+                .withVariant(variant)
                 .withType(GitLabGroupMemberInfo.class)
                 .andParameters(groupId)
                 .loadAsArray();
     }
 
     /**
-     * Loads the JSON file with all groups.
+     * Loads a JSON file with group members.
      *
+     * @see #loadGroupMembers(int, String)
+     */
+    private List<GitLabGroupMemberInfo> loadGroupMembers(int groupId) throws Exception {
+        return loadGroupMembers(groupId, null);
+    }
+
+    /**
+     * Loads a JSON file with all groups.
+     *
+     * @param variant the variant name
      * @return a list of groups
      * @throws Exception if loading the file failed
      */
-    private List<GitLabGroupInfo> loadGroups() throws Exception {
+    private List<GitLabGroupInfo> loadGroups(String variant) throws Exception {
         return jsonFile("api/v3/groups")
+                .withVariant(variant)
                 .withType(GitLabGroupInfo.class)
                 .loadAsArray();
+    }
+
+    /**
+     * Loads the JSON file with all groups.
+     *
+     * @see #loadGroups(String)
+     */
+    private List<GitLabGroupInfo> loadGroups() throws Exception {
+        return loadGroups(null);
+    }
+
+    /**
+     * A fake Ticker for cache tests.
+     */
+    private static class MockTicker extends Ticker {
+        /** The ticker value. */
+        public long value = 0l;
+
+        @Override
+        public long read() {
+            return value;
+        }
     }
 }
