@@ -26,6 +26,8 @@
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
 import com.sonymobile.gitlab.api.GitLabApiClient;
+import com.sonymobile.gitlab.exceptions.GroupNotFoundException;
+import com.sonymobile.gitlab.exceptions.UserNotFoundException;
 import com.sonymobile.gitlab.model.FullGitLabUserInfo;
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
@@ -82,7 +84,7 @@ public class GitLabTest {
     public void getUser() throws Exception {
         // user 1 exists, user 1000 does not
         expect(mockApiClient.getUser(1)).andReturn(loadUser());
-        expect(mockApiClient.getUser(1000)).andReturn(null);
+        expect(mockApiClient.getUser(1000)).andThrow(new UserNotFoundException(""));
         replay(mockApiClient);
 
         GitLabUserInfo goodUser = GitLab.getUser(1);
@@ -98,17 +100,20 @@ public class GitLabTest {
 
     @Test
     public void getGroupMember() throws Exception {
-        expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).times(2);
+        expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).anyTimes();
+        expect(mockApiClient.getGroupMembers(1000)).andThrow(new GroupNotFoundException(""));
         replay(mockApiClient);
 
         GitLabGroupMemberInfo goodMember = GitLab.getGroupMember(/* userId */ 1, /* groupId */ 1);
         GitLabGroupMemberInfo badMember = GitLab.getGroupMember(/* userId */ 1000, /* groupId */ 1);
+        GitLabGroupMemberInfo memberOfBadGroup = GitLab.getGroupMember(/* userId */ 1, /* groupId */ 1000);
 
         assertThat("user 1 should be a member of the group", goodMember, is(notNullValue()));
         assertThat(1, is(goodMember.getId()));
         assertThat(1, is(goodMember.getGroupId()));
 
         assertThat("user 1000 should not be a member of the group", badMember, is(nullValue()));
+        assertThat("group 1000 should not exist", memberOfBadGroup, is(nullValue()));
 
         verify(mockApiClient);
     }
@@ -130,20 +135,22 @@ public class GitLabTest {
 
     @Test
     public void isAdmin() throws Exception {
-        // user 1 is an admin, user 2 is not
+        // user 1 is an admin, user 2 is not, user 1000 doesn't exist
         expect(mockApiClient.getUser(1)).andReturn(loadAdminUser());
         expect(mockApiClient.getUser(2)).andReturn(loadUser());
+        expect(mockApiClient.getUser(1000)).andThrow(new UserNotFoundException(""));
         replay(mockApiClient);
 
         assertThat(GitLab.isAdmin(1), is(true));
         assertThat(GitLab.isAdmin(2), is(false));
+        assertThat(GitLab.isAdmin(1000), is(false));
 
         verify(mockApiClient);
     }
 
     @Test
     public void getAccessLevelInGroup() throws Exception {
-        expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).times(2);
+        expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).anyTimes();
         replay(mockApiClient);
 
         // user 1 is an developer, user 1000 isn't member of the group
