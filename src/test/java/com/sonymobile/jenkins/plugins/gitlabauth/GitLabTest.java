@@ -54,6 +54,9 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
 import static org.powermock.api.easymock.PowerMock.mockStaticPartial;
+import static org.powermock.reflect.Whitebox.getInnerClassType;
+import static org.powermock.reflect.Whitebox.invokeConstructor;
+import static org.powermock.reflect.Whitebox.invokeMethod;
 
 /**
  * Tests for the {@link GitLab} class.
@@ -70,7 +73,7 @@ public class GitLabTest {
      * Prepares tests by adding a mock for the GitLab API client.
      */
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         // create mock for the GitLab API client
         mockApiClient = createMock(GitLabApiClient.class);
 
@@ -78,6 +81,10 @@ public class GitLabTest {
         mockStaticPartial(GitLabConfig.class, "getApiClient");
         expect(GitLabConfig.getApiClient()).andReturn(mockApiClient).anyTimes();
         PowerMock.replay(GitLabConfig.class);
+
+        // replace the singleton implementation instance of GitLab
+        invokeMethod(GitLab.class, "setInstance", invokeConstructor(getInnerClassType(GitLab.class,
+                "Implementation")));
     }
 
     @Test
