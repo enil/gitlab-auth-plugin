@@ -30,12 +30,12 @@ import com.google.common.cache.CacheBuilder;
 import com.sonymobile.gitlab.api.GitLabApiClient;
 import com.sonymobile.gitlab.exceptions.GroupNotFoundException;
 import com.sonymobile.gitlab.exceptions.UserNotFoundException;
-import com.sonymobile.gitlab.model.FullGitLabUserInfo;
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.gitlab.model.GitLabGroupMemberInfo;
 import com.sonymobile.gitlab.model.GitLabUserInfo;
 import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
+import org.apache.commons.lang.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -46,7 +46,11 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.sonymobile.gitlab.helpers.JsonFileLoader.jsonFile;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabMockDataLoaders.loadAdminUser;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabMockDataLoaders.loadGroupMembers;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabMockDataLoaders.loadGroups;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabMockDataLoaders.loadUser;
+import static org.apache.commons.lang.StringUtils.EMPTY;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -111,7 +115,7 @@ public class GitLabTest {
     public void getUser() throws Exception {
         // user 1 exists, user 1000 does not
         expect(mockApiClient.getUser(1)).andReturn(loadUser());
-        expect(mockApiClient.getUser(1000)).andThrow(new UserNotFoundException(""));
+        expect(mockApiClient.getUser(1000)).andThrow(new UserNotFoundException(EMPTY));
         replay(mockApiClient);
 
         GitLabUserInfo goodUser = GitLab.getUser(1);
@@ -166,7 +170,7 @@ public class GitLabTest {
     @Test
     public void getGroupMember() throws Exception {
         expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).anyTimes();
-        expect(mockApiClient.getGroupMembers(1000)).andThrow(new GroupNotFoundException(""));
+        expect(mockApiClient.getGroupMembers(1000)).andThrow(new GroupNotFoundException(EMPTY));
         replay(mockApiClient);
 
         GitLabGroupMemberInfo goodMember = GitLab.getGroupMember(/* userId */ 1, /* groupId */ 1);
@@ -260,7 +264,7 @@ public class GitLabTest {
 
         // after cache invalidation
         {
-            // return an updated member object
+            // return an updated group list
             expect(mockApiClient.getGroups()).andReturn(loadGroups("newer")).once();
             replay(mockApiClient);
 
@@ -276,7 +280,7 @@ public class GitLabTest {
         // user 1 is an admin, user 2 is not, user 1000 doesn't exist
         expect(mockApiClient.getUser(1)).andReturn(loadAdminUser());
         expect(mockApiClient.getUser(2)).andReturn(loadUser());
-        expect(mockApiClient.getUser(1000)).andThrow(new UserNotFoundException(""));
+        expect(mockApiClient.getUser(1000)).andThrow(new UserNotFoundException(EMPTY));
         replay(mockApiClient);
 
         assertThat(GitLab.isAdmin(1), is(true));
@@ -296,86 +300,6 @@ public class GitLabTest {
         assertThat(GitLab.getAccessLevelInGroup(/* userId */ 1000, /* groupId */ 1), is(GitLabAccessLevel.NONE));
 
         verify(mockApiClient);
-    }
-
-    /**
-     * Loads a JSON file with a user.
-     *
-     * @param variant the variant name
-     * @return a user
-     * @throws Exception if loading the file failed
-     */
-    private GitLabUserInfo loadUser(String variant) throws Exception {
-        return jsonFile("api/v3/users/1")
-                .withVariant(variant)
-                .withType(FullGitLabUserInfo.class)
-                .loadAsObject();
-    }
-
-    /**
-     * Load a JSON file with a normal user.
-     *
-     * @see #loadUser(String)
-     */
-    private GitLabUserInfo loadUser() throws Exception {
-        return loadUser(null);
-    }
-
-    /**
-     * Load a JSON file with an admin user.
-     *
-     * @see #loadUser(String)
-     */
-    private GitLabUserInfo loadAdminUser() throws Exception {
-        return loadUser("admin");
-    }
-
-    /**
-     * Loads a JSON file with group members.
-     *
-     * @param variant the variant name
-     * @param groupId the group ID
-     * @return a list of group members
-     * @throws Exception if loading the file failed
-     */
-    private List<GitLabGroupMemberInfo> loadGroupMembers(int groupId, String variant) throws Exception {
-        return jsonFile("api/v3/groups/1/members")
-                .withVariant(variant)
-                .withType(GitLabGroupMemberInfo.class)
-                .andParameters(groupId)
-                .loadAsArray();
-    }
-
-    /**
-     * Loads a JSON file with group members.
-     *
-     * @see #loadGroupMembers(int, String)
-     */
-    private List<GitLabGroupMemberInfo> loadGroupMembers(int groupId) throws Exception {
-        return loadGroupMembers(groupId, null);
-    }
-
-    /**
-     * Loads a JSON file with all groups.
-     *
-     * @param variant the variant name
-     * @return a list of groups
-     * @throws Exception if loading the file failed
-     */
-    private List<GitLabGroupInfo> loadGroups(String variant) throws Exception {
-        return jsonFile("api/v3/groups")
-                .withVariant(variant)
-                .withType(GitLabGroupInfo.class)
-                .loadAsArray();
-    }
-
-    /**
-     * Loads the JSON file with all groups.
-     *
-     * @see #loadGroups(String)
-     */
-    private List<GitLabGroupInfo> loadGroups() throws Exception {
-        return loadGroups(null);
     }
 
     /**
