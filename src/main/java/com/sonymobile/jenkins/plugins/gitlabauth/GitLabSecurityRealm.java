@@ -29,7 +29,7 @@ import com.sonymobile.gitlab.api.GitLabApiClient;
 import com.sonymobile.gitlab.exceptions.ApiConnectionFailureException;
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabSessionInfo;
-import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
+import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfiguration;
 import com.sonymobile.jenkins.plugins.gitlabapi.exception.GitLabConfigurationException;
 
 import hudson.Extension;
@@ -99,13 +99,13 @@ public class GitLabSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * @throws ApiConnectionFailureException if the API connection failed
      */
     private UserDetails loadUserWithCredentials(String username, String password) throws GitLabApiException {
-        GitLabApiClient client = GitLabConfig.getApiClient();
+        GitLabApiClient client = GitLabConfiguration.getApiClient();
         
         if(client == null) {
             throw new GitLabConfigurationException("Failed to create the API client");
         }
         
-        GitLabSessionInfo session = GitLabConfig.getApiClient().getSession(username, password);
+        GitLabSessionInfo session = GitLabConfiguration.getApiClient().getSession(username, password);
         // create user details from the session
         return new GitLabUserDetails(session);
     }

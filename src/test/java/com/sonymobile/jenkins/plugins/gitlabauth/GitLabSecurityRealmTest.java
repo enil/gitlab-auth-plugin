@@ -27,7 +27,7 @@ package com.sonymobile.jenkins.plugins.gitlabauth;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
+import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfiguration;
 import hudson.security.SecurityRealm;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
@@ -147,7 +147,7 @@ public class GitLabSecurityRealmTest {
      * Configures the GitLab API plugin of the Jenkins instance.
      */
     private void configureApi() {
-        GitLabConfig config = jenkinsRule.get(GitLabConfig.class).getInstance();
+        GitLabConfiguration config = jenkinsRule.get(GitLabConfiguration.class).getInstance();
         config.setServerUrl("http://localhost:" + GITLAB_PORT);
         // private token can be anything
         config.setPrivateToken("private_token");
