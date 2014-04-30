@@ -101,7 +101,7 @@ public class GitLab {
      */
     public static boolean isAdmin(int userId) throws GitLabApiException {
         GitLabUserInfo user = getUser(userId);
-
+        // not administrator if the user wasn't found
         return user != null && user.isAdmin();
     }
 
@@ -115,7 +115,7 @@ public class GitLab {
      */
     public static GitLabAccessLevel getAccessLevelInGroup(int userId, int groupId) throws GitLabApiException {
         GitLabGroupMemberInfo member = getGroupMember(userId, groupId);
-
+        // no access if user isn't a member of the group
         return member == null ? GitLabAccessLevel.NONE : member.getAccessLevel();
     }
 
@@ -137,6 +137,9 @@ public class GitLab {
         GitLab.instance = instance;
     }
 
+    /**
+     * Singleton implementation.
+     */
     private static class Implementation {
         /** A cache storing users. */
         private final LoadingCache<Integer, GitLabUserInfo> cachedUsers;
@@ -164,38 +167,14 @@ public class GitLab {
             // cache for 1 minute
             cacheBuilder.expireAfterWrite(1, TimeUnit.MINUTES);
 
-            cachedUsers = cacheBuilder.build(new CacheLoader<Integer, GitLabUserInfo>() {
-                @Override
-                public GitLabUserInfo load(Integer userId) throws Exception {
-                    return getApiClient().getUser(userId);
-                }
-            });
+            // cache users with userId -> user
+            cachedUsers = cacheBuilder.build(new UserCacheLoader());
 
-            cachedGroupMemberships = cacheBuilder.build(new CacheLoader<Integer, Map<Integer,
-                    GitLabGroupMemberInfo>>() {
-                @Override
-                public Map<Integer, GitLabGroupMemberInfo> load(Integer groupId)
-                        throws Exception {
-                    List<GitLabGroupMemberInfo> memberList = getApiClient().getGroupMembers(groupId);
+            // cache group members with groupId -> map of userId -> user
+            cachedGroupMemberships = cacheBuilder.build(new GroupMembershipsCacheLoader());
 
-                    Map<Integer, GitLabGroupMemberInfo> members = new HashMap<Integer,
-                            GitLabGroupMemberInfo>(memberList.size());
-                    for (final GitLabGroupMemberInfo member : memberList) {
-                        members.put(member.getId(), member);
-                    }
-
-                    return members;
-                }
-            });
-
-            cachedGroups = cacheBuilder.initialCapacity(1).build(new CacheLoader<Any,
-                    List<GitLabGroupInfo>>() {
-                @Override
-                public List<GitLabGroupInfo> load(Any key) throws Exception {
-                    // ignore the key
-                    return getApiClient().getGroups();
-                }
-            });
+            // cache groups with * -> list of groups (uses Any for keys since only one value is cached)
+            cachedGroups = cacheBuilder.initialCapacity(1).build(new GroupsCacheLoader());
         }
 
         /**
@@ -203,6 +182,7 @@ public class GitLab {
          */
         public GitLabUserInfo getUser(int userId) throws GitLabApiException {
             try {
+                // throws UserNotFoundException if user is missing
                 return cachedUsers.get(userId);
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof UserNotFoundException) {
@@ -255,6 +235,47 @@ public class GitLab {
         }
 
         /**
+         * Cache loader for getting users from the API.
+         */
+        private class UserCacheLoader extends CacheLoader<Integer, GitLabUserInfo> {
+            @Override
+            public GitLabUserInfo load(Integer userId) throws Exception {
+                return getApiClient().getUser(userId);
+            }
+        }
+
+        /**
+         * Cache loader for getting memberships of groups from the API.
+         */
+        private class GroupMembershipsCacheLoader extends CacheLoader<Integer, Map<Integer, GitLabGroupMemberInfo>> {
+            @Override
+            public Map<Integer, GitLabGroupMemberInfo> load(Integer groupId)
+                    throws Exception {
+                // get all members as a list
+                List<GitLabGroupMemberInfo> memberList = getApiClient().getGroupMembers(groupId);
+
+                // create and return map with userId -> member
+                Map<Integer, GitLabGroupMemberInfo> members = new HashMap<Integer,
+                        GitLabGroupMemberInfo>(memberList.size());
+                for (final GitLabGroupMemberInfo member : memberList) {
+                    members.put(member.getId(), member);
+                }
+                return members;
+            }
+        }
+
+        /**
+         * Cache loader for getting groups from the API.
+         */
+        private class GroupsCacheLoader extends CacheLoader<Any, List<GitLabGroupInfo>> {
+            @Override
+            public List<GitLabGroupInfo> load(Any key) throws Exception {
+                // ignore the key
+                return getApiClient().getGroups();
+            }
+        }
+
+        /**
          * Returns the API client.
          *
          * @return an API client
@@ -273,14 +294,10 @@ public class GitLab {
             private Any() { /* empty */ }
 
             @Override
-            public int hashCode() {
-                return 1;
-            }
+            public int hashCode() { return 1; }
 
             @Override
-            public boolean equals(Object other) {
-                return other instanceof Any;
-            }
+            public boolean equals(Object other) { return other instanceof Any; }
         }
     }
 }
