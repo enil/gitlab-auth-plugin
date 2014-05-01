@@ -1,15 +1,13 @@
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
+import com.sonymobile.gitlab.helpers.JsonFileLoader;
 import com.sonymobile.gitlab.model.GitLabSessionInfo;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.FileHelpers.loadJsonObject;
+import static com.sonymobile.gitlab.helpers.JsonFileLoader.jsonFile;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-
 
 /**
  * Tests getting attributes from {@link GitLabUserDetails}.
@@ -28,14 +26,15 @@ public class GitLabUserDetailsTest {
 
     /**
      * Creates the GitLab normalUser to test.
-     *
-     * @throws IOException if the session file couldn't be read
      */
     @Before
-    public void setUp() throws IOException {
-        normalUser = new GitLabUserDetails(new GitLabSessionInfo(loadJsonObject("/api/v3/session")));
-        adminUser = new GitLabUserDetails(new GitLabSessionInfo(loadJsonObject("/api/v3/session", "admin")));
-        blockedUser = new GitLabUserDetails(new GitLabSessionInfo(loadJsonObject("/api/v3/session", "blocked")));
+    public void setUp() throws Exception {
+        JsonFileLoader.ObjectLoader<GitLabSessionInfo> sessionFile = jsonFile("api/v3/session")
+                .withType(GitLabSessionInfo.class);
+
+        normalUser = new GitLabUserDetails(sessionFile.loadAsObject());
+        adminUser = new GitLabUserDetails((sessionFile.withVariant("admin").loadAsObject()));
+        blockedUser = new GitLabUserDetails((sessionFile.withVariant("blocked").loadAsObject()));
     }
 
     @Test
