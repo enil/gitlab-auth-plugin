@@ -41,6 +41,7 @@ import java.util.concurrent.Callable;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -59,6 +60,7 @@ import static org.junit.Assert.assertThat;
  */
 public class GitLabSecurityRealmTest {
     /** The port to run the mocked GitLab server on. */
+    // fixme: allow setting port from command line to prevent collisions
     private final static int GITLAB_PORT = 9090;
 
     /** A rule for creating a Jenkins environment. */
@@ -101,6 +103,12 @@ public class GitLabSecurityRealmTest {
      */
     @Test
     public void authenticateWithValidCredentials() throws Exception {
+        // make GitLab respond with the current user for connection test
+        stubFor(get(urlEqualTo("/api/v3/user?private_token=private_token"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withBodyFile("/api/v3/user.json")));
+
         // make GitLab respond with a valid session
         stubFor(post(urlEqualTo("/api/v3/session"))
                 .withRequestBody(containing("login=username"))
@@ -129,6 +137,12 @@ public class GitLabSecurityRealmTest {
      */
     @Test
     public void authenticateWithInvalidCredentials() throws Exception {
+        // make GitLab respond with the current user for connection test
+        stubFor(get(urlEqualTo("/api/v3/user?private_token=private_token"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withBodyFile("/api/v3/user.json")));
+
         // make GitLab respond with an HTTP 401 Unauthorized
         stubFor(post(urlEqualTo("/api/v3/session"))
                 .withRequestBody(containing("login=invalidusername"))
