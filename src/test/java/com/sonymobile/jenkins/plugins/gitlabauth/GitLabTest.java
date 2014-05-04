@@ -34,8 +34,7 @@ import com.sonymobile.gitlab.model.GitLabAccessLevel;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.gitlab.model.GitLabGroupMemberInfo;
 import com.sonymobile.gitlab.model.GitLabUserInfo;
-import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
-import org.apache.commons.lang.StringUtils;
+import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -72,7 +71,7 @@ import static org.powermock.reflect.Whitebox.invokeMethod;
  * @author Emil Nilsson
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest(GitLabConfig.class)
+@PrepareForTest(GitLabConfiguration.class)
 public class GitLabTest {
     /** The number of nanoseconds in a second, for the ticker. */
     private static final long SECONDS = TimeUnit.SECONDS.toNanos(1);
@@ -80,7 +79,7 @@ public class GitLabTest {
     /** The number of nanoseconds in a minute, for the ticker. */
     private static final long MINUTES = TimeUnit.MINUTES.toNanos(1);
 
-    /** A mock for the GitLab API client returned by GitLabConfig. */
+    /** A mock for the GitLab API client returned by GitLabConfiguration. */
     private GitLabApiClient mockApiClient;
 
     /** A mock ticker for cache tests. */
@@ -94,10 +93,10 @@ public class GitLabTest {
         // create mock for the GitLab API client
         mockApiClient = createMock(GitLabApiClient.class);
 
-        // mock GitLabConfig to return the mocked GitLab API Client
-        mockStaticPartial(GitLabConfig.class, "getApiClient");
-        expect(GitLabConfig.getApiClient()).andReturn(mockApiClient).anyTimes();
-        PowerMock.replay(GitLabConfig.class);
+        // mock GitLabConfiguration to return the mocked GitLab API Client
+        mockStaticPartial(GitLabConfiguration.class, "getApiClient");
+        expect(GitLabConfiguration.getApiClient()).andReturn(mockApiClient).anyTimes();
+        PowerMock.replay(GitLabConfiguration.class);
 
         // create ticker for testing cache
         mockTicker = new MockTicker();

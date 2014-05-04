@@ -37,6 +37,7 @@ import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.gitlab.model.GitLabGroupMemberInfo;
 import com.sonymobile.gitlab.model.GitLabUserInfo;
 import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfig;
+import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfiguration;
 
 import java.util.HashMap;
 import java.util.List;
@@ -281,7 +282,7 @@ public class GitLab {
          * @return an API client
          */
         private GitLabApiClient getApiClient() {
-            return GitLabConfig.getApiClient();
+            return GitLabConfiguration.getApiClient();
         }
 
         /**
