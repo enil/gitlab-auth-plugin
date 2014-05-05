@@ -38,6 +38,9 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabModelDataCreator.createGroupInfo;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockTopLevelItemCreator.createMockFolder;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockTopLevelItemCreator.createMockFreeStyleProject;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockTopLevelItemCreator.createMockTopLevelItem;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -57,10 +60,10 @@ public class GitLabFolderCreatorTest {
     public ExpectedException thrown = ExpectedException.none();
 
     /** A GitLab folder. */
-    private final Folder folder = createMockTopLevelItem(Folder.class, "foldername");
+    private final Folder folder = createMockFolder("foldername");
 
     /** A item. */
-    private final TopLevelItem item = createMockTopLevelItem(FreeStyleProject.class, "foldername");
+    private final TopLevelItem item = createMockFreeStyleProject("foldername");
 
     /** A GitLab group. */
     private final GitLabGroupInfo group = createGroupInfo(1, "Folder Name", "foldername");
@@ -111,7 +114,7 @@ public class GitLabFolderCreatorTest {
     @Test
     public void whenAlreadyPresent() throws Exception {
         // mock an already existing folder with the same name
-        Folder folder = createMockTopLevelItem(Folder.class, "foldername");
+        Folder folder = createMockFolder("foldername");
 
         expect(mockItemGroup.getItem("foldername")).
                 andReturn(folder).anyTimes();
@@ -140,24 +143,5 @@ public class GitLabFolderCreatorTest {
         folderCreator.createOrGetGitLabGroup(group);
 
         verify(mockItemGroup);
-    }
-
-    /**
-     * Creates a mock object for a top level item.
-     *
-     * The item is capable of return its own name but not much more.
-     *
-     * @param type the class for the item
-     * @param name the name of the item
-     * @param <T>  the type
-     * @return a mock top level item
-     */
-    private static <T extends TopLevelItem> T createMockTopLevelItem(Class<T> type, String name) {
-        T item = createMock(type);
-        // it must be able to return its name
-        expect(item.getName()).andReturn(name).anyTimes();
-        replay(item);
-
-        return item;
     }
 }
