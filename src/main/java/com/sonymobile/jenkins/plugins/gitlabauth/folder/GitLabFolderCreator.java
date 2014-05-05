@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  */
 
-package com.sonymobile.jenkins.plugins.gitlabauth;
+package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
@@ -63,7 +63,7 @@ public class GitLabFolderCreator {
      * @param group the GitLab group
      * @return the folder
      * @throws ItemNameCollisionException if an item with the name already existed
-     * @throws IOException                if saving to persistant storage failed
+     * @throws IOException                if saving to persistent storage failed
      */
     public Folder createOrGetGitLabGroup(GitLabGroupInfo group) throws ItemNameCollisionException, IOException {
         TopLevelItem item;
