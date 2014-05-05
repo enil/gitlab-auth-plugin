@@ -39,7 +39,7 @@ import java.io.IOException;
  *
  * @author Emil Nilsson
  */
-public class GitLabFolderCreator {
+public class GitLabFolderCreator implements GitLabFolderSynchronizer.FolderCreator {
     /** The target item group to create folders in. */
     private final ModifiableTopLevelItemGroup itemGroup;
 
