@@ -186,6 +186,27 @@ public class GitLabTest {
         verify(mockApiClient);
     }
 
+    @Test
+    public void getGroupMemberByPath() throws Exception {
+        expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).anyTimes();
+        // will call getGroups to find the groups
+        expect(mockApiClient.getGroups()).andReturn(loadGroups()).anyTimes();
+        replay(mockApiClient);
+
+        GitLabGroupMemberInfo goodMember = GitLab.getGroupMember(/* userId */ 1, "groupname");
+        GitLabGroupMemberInfo badMember = GitLab.getGroupMember(/* userId */ 1000, "groupname");
+        GitLabGroupMemberInfo memberOfBadGroup = GitLab.getGroupMember(/* userId */ 1, "notreal");
+
+        assertThat("user 1 should be a member of the group", goodMember, is(notNullValue()));
+        assertThat(1, is(goodMember.getId()));
+        assertThat(1, is(goodMember.getGroupId()));
+
+        assertThat("user 1000 should not be a member of the group", badMember, is(nullValue()));
+        assertThat("group 1000 should not exist", memberOfBadGroup, is(nullValue()));
+
+        verify(mockApiClient);
+    }
+
     /**
      * Tests caching with {@link GitLab#getGroupMember(int, int)}}.
      */
@@ -272,6 +293,21 @@ public class GitLabTest {
 
             verify(mockApiClient);
         }
+    }
+
+    @Test
+    public void getGroupByPath() throws Exception {
+        expect(mockApiClient.getGroups()).andReturn(loadGroups());
+        replay(mockApiClient);
+
+        GitLabGroupInfo group = GitLab.getGroupByPath("groupname");
+
+        assertThat("Group should exist", group, is(notNullValue()));
+        assertThat(1, is(group.getId()));
+
+        assertThat("Group should not exist", GitLab.getGroupByPath("notreal"), is(nullValue()));
+
+        verify(mockApiClient);
     }
 
     @Test

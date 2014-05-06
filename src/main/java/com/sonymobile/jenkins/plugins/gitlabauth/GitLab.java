@@ -38,13 +38,13 @@ import com.sonymobile.gitlab.model.GitLabGroupMemberInfo;
 import com.sonymobile.gitlab.model.GitLabUserInfo;
 import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfiguration;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-
-import static java.util.Collections.unmodifiableList;
 
 /**
  * An interface to a GitLab server.
@@ -83,6 +83,25 @@ public class GitLab {
     }
 
     /**
+     * Gets information about a member in a group.
+     *
+     * @param userId    ID of the user
+     * @param groupPath the group path
+     * @return group membership information or null user or group doesn't exist or user isn't member of group
+     * @throws GitLabApiException if the connection against GitLab failed
+     */
+    public static GitLabGroupMemberInfo getGroupMember(int userId, String groupPath) throws GitLabApiException {
+        GitLabGroupInfo group = getGroupByPath(groupPath);
+
+        if (group == null) {
+            // group doesn't exist
+            return null;
+        } else {
+            return instance.getGroupMember(userId, group.getId());
+        }
+    }
+
+    /**
      * Gets all groups.
      *
      * @return a list of all groups
@@ -90,6 +109,17 @@ public class GitLab {
      */
     public static List<GitLabGroupInfo> getGroups() throws GitLabApiException {
         return instance.getGroups();
+    }
+
+    /**
+     * Gets the group for a specified path.
+     *
+     * @param groupPath the group path
+     * @return the group or null if the group doesn't exist
+     * @throws GitLabApiException if the connection against GitLab failed
+     */
+    public static GitLabGroupInfo getGroupByPath(String groupPath) throws GitLabApiException {
+        return instance.getGroupByPath(groupPath);
     }
 
     /**
@@ -148,7 +178,7 @@ public class GitLab {
         private final LoadingCache<Integer, Map<Integer, GitLabGroupMemberInfo>> cachedGroupMemberships;
 
         /** A cache for storing groups. */
-        private final LoadingCache<Any, List<GitLabGroupInfo>> cachedGroups;
+        private final LoadingCache<Any, Map<String, GitLabGroupInfo>> cachedGroups;
 
         /**
          * Creates a new standard implementation.
@@ -222,7 +252,24 @@ public class GitLab {
          */
         public List<GitLabGroupInfo> getGroups() throws GitLabApiException {
             try {
-                return unmodifiableList(cachedGroups.get(Any.anyValue));
+                return new ArrayList<GitLabGroupInfo>(cachedGroups.get(Any.anyValue).values());
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof GitLabApiException) {
+                    // throw any GitLabApiExceptions
+                    throw (GitLabApiException)e.getCause();
+                } else {
+                    // throw any other unexpected exceptions
+                    throw new RuntimeException(e.getCause());
+                }
+            }
+        }
+
+        /**
+         * @see GitLab#getGroupByPath(String)
+         */
+        public GitLabGroupInfo getGroupByPath(String path) throws GitLabApiException {
+            try {
+                return cachedGroups.get(Any.anyValue).get(path);
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof GitLabApiException) {
                     // throw any GitLabApiExceptions
@@ -267,11 +314,17 @@ public class GitLab {
         /**
          * Cache loader for getting groups from the API.
          */
-        private class GroupsCacheLoader extends CacheLoader<Any, List<GitLabGroupInfo>> {
+        private class GroupsCacheLoader extends CacheLoader<Any, Map<String, GitLabGroupInfo>> {
             @Override
-            public List<GitLabGroupInfo> load(Any key) throws Exception {
-                // ignore the key
-                return getApiClient().getGroups();
+            public Map<String, GitLabGroupInfo> load(Any key) throws Exception {
+                List<GitLabGroupInfo> groupList = getApiClient().getGroups();
+
+                // create and return map with groupPath -> group
+                Map<String, GitLabGroupInfo> groups = new TreeMap<String, GitLabGroupInfo>();
+                for (GitLabGroupInfo group : groupList) {
+                    groups.put(group.getPath(), group);
+                }
+                return groups;
             }
         }
 
