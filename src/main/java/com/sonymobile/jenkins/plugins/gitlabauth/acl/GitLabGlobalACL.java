@@ -43,6 +43,7 @@ import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 
+import hudson.security.ACL;
 import hudson.security.Permission;
 
 /**
@@ -91,6 +92,10 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
      */
     @Override
     public boolean hasPermission(Authentication auth, Permission permission) {
+        if (auth == ACL.SYSTEM) {
+            return true;
+        }
+        
         if(isLoggedIn(auth)) {
             GitLabUserDetails user = (GitLabUserDetails) auth.getPrincipal();
             
