@@ -33,6 +33,8 @@ import java.util.Map;
 import org.acegisecurity.Authentication;
 import org.apache.commons.lang.StringUtils;
 
+import com.sonymobile.gitlab.exceptions.GitLabApiException;
+import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevels;
 import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
 import com.thoughtworks.xstream.converters.Converter;
@@ -90,11 +92,15 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
     @Override
     public boolean hasPermission(Authentication auth, Permission permission) {
         if(isLoggedIn(auth)) {
-            String username = ((GitLabUserDetails) auth.getPrincipal()).getUsername();
-            if(isAdmin(username)) {
-                return isPermissionSet(JenkinsAccessLevels.ADMIN, permission);
-            } else {
-                return isPermissionSet(JenkinsAccessLevels.LOGGED_IN, permission);
+            GitLabUserDetails user = (GitLabUserDetails) auth.getPrincipal();
+            
+            if(isAdmin(user)) {
+                if (isPermissionSet(JenkinsAccessLevels.ADMIN, permission)) {
+                    return true;
+                }
+            }
+            if (isPermissionSet(JenkinsAccessLevels.LOGGED_IN, permission)) {
+                return true;
             }
         }
         return isPermissionSet(JenkinsAccessLevels.ANONYMOUS, permission);
@@ -103,12 +109,16 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
     /**
      * Checks if the given user has admin access on the jenkins server.
      * 
-     * @param username the username of the user
+     * @param user the user
      * @return true is the user has admin access else false
      */
-    public boolean isAdmin(String username) {
-//        return adminUsernames.contains(user.getUsername()) || (useGitLabAdmins && GitLab.isAdmin(user.getId()));
-        return adminUsernames.contains(username);
+    public boolean isAdmin(GitLabUserDetails user) {
+        try {
+            return adminUsernames.contains(user.getUsername()) || (useGitLabAdmins && GitLab.isAdmin(user.getId()));
+        } catch (GitLabApiException e) {
+            //TODO: Logger: connection failed.
+        }
+        return false;
     }
     
     /**

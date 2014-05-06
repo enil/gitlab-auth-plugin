@@ -36,6 +36,9 @@ import jenkins.model.Jenkins;
 
 import org.acegisecurity.Authentication;
 
+import com.sonymobile.gitlab.exceptions.GitLabApiException;
+import com.sonymobile.gitlab.model.GitLabAccessLevel;
+import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevels;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabAuthorization;
 import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
@@ -51,6 +54,8 @@ import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
  * @author Andreas Alanko
  */
 public class GitLabFolderACL extends GitLabAbstactACL {
+    /** The group id associated with this ACL */
+    private int groupId;
     
     /**
      * Creates a folder ACL to use for GitLabFolderAuthorization.
@@ -70,16 +75,32 @@ public class GitLabFolderACL extends GitLabAbstactACL {
      */
     @Override
     public boolean hasPermission(Authentication auth, Permission permission) {
+        if(hasGlobalPermission(auth, permission)) {
+            return true;
+        }
+        
         if (isLoggedIn(auth)) {
-            if(hasGlobalPermission(auth, permission)) {
-               return true;
+            GitLabUserDetails user = (GitLabUserDetails) auth.getPrincipal();
+            
+            try {
+                GitLabAccessLevel accessLevel = GitLab.getAccessLevelInGroup(user.getId(), groupId);
+                
+                if (isPermissionSet(accessLevel.name(), permission)) {
+                    return true;
+                }
+            } catch (GitLabApiException e) {
+                //TODO: Logger: Connection to the API failed.
             }
             
-//            if (((GitLabUserDetails) auth.getPrincipal()).getUsername().equals("andreas")) {
-//                return true;
-//            } else {
-//                return isPermissionSet(JenkinsAccessLevels.LOGGED_IN, permission);
-//            }
+            if (isAdmin(user)) {
+                if (isPermissionSet(JenkinsAccessLevels.ADMIN, permission)) {
+                    return true;
+                }
+            }
+            
+            if (isPermissionSet(JenkinsAccessLevels.LOGGED_IN, permission)) {
+                return true;
+            }
         }
         return isPermissionSet(JenkinsAccessLevels.ANONYMOUS, permission);
     }
@@ -100,6 +121,20 @@ public class GitLabFolderACL extends GitLabAbstactACL {
         return false;
     }
     
+    /**
+     * Checks if the given user has admin access on the jenkins server.
+     * 
+     * @param user the user
+     * @return true is the user has admin access else false
+     */
+    private boolean isAdmin(GitLabUserDetails user) {
+        if(Jenkins.getInstance().getAuthorizationStrategy() instanceof GitLabAuthorization) {
+            GitLabAuthorization authorization = (GitLabAuthorization) Jenkins.getInstance().getAuthorizationStrategy();
+            
+            return ((GitLabFolderACL) authorization.getRootACL()).isAdmin(user);
+        }
+        return false;
+    }
 
     /**
      * Used to store the permission id instead of the reference to the 
