@@ -157,6 +157,9 @@ public class GitLabFolderACL extends GitLabAbstactACL {
         private static final String XML_FIELD_PERMISSION = "permission";
         private static final String XML_FIELD_GROUPID = "groupId";
         
+        /** Logger for this class. */
+        private final Logger LOGGER = Logger.getLogger(GitLabFolderACL.class.getName());
+        
         public boolean canConvert(Class clazz) {
             return clazz.equals(GitLabFolderACL.class);
         }
@@ -204,6 +207,8 @@ public class GitLabFolderACL extends GitLabAbstactACL {
                         Permission p = Permission.fromId(value[1]);
                         if (p != null) {
                             grantedPermissions.get(value[0]).add(p);
+                        } else {
+                            LOGGER.warning("Unknown permission id " + value[1]);
                         }
                     }
                 } else if (XML_FIELD_GROUPID.equals(reader.getNodeName())) {

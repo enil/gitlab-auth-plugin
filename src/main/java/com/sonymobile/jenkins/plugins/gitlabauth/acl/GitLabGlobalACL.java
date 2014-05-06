@@ -188,6 +188,9 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
     	private static final String XML_FIELD_ADMINGROUPS = "adminGroup";
     	private static final String XML_FIELD_USEGITLABADMINS = "useGitLabAdmins";
     	
+    	/** Logger for this class. */
+        private final Logger LOGGER = Logger.getLogger(GitLabGlobalACL.class.getName());
+    	
         public boolean canConvert(Class clazz) {
             return clazz.equals(GitLabGlobalACL.class);
         }
@@ -249,6 +252,8 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
                         Permission p = Permission.fromId(value[1]);
                         if (p != null) {
                             grantedPermissions.get(value[0]).add(p);
+                        } else {
+                            LOGGER.warning("Unknown permission id " + value[1]);
                         }
                     }
                 } else if (XML_FIELD_USEGITLABADMINS.equals(reader.getNodeName())) {
