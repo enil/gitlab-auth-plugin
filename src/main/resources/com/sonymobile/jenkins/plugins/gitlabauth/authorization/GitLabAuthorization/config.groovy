@@ -56,8 +56,12 @@ f.block() {
         }
     }
 
-    f.entry(title: "Admin usernames", description: "Usernames of GitLab users who will be granted admin rights on the Jenkins server. Usernames should be seperated by commas.") {
-        f.checkbox(field: "useGitLabAdmins", title: "Check if all GitLab admins also should be Jenkins admins.")
+    f.entry(title: "Admin usernames", description: "GitLab usernames who will be granted admin rights. Should be separated by a comma.") {
+        f.checkbox(field: "useGitLabAdmins", title: "Check if all GitLab admins should also be Jenkins admins.")
         f.textbox(field: "adminUsernames")
+    }
+    
+    f.entry(title: "Admin groups", description: "GitLab group path names who will be granted admin rights. Should be separated by a comma.") {
+        f.textbox(field: "adminGroups")
     }
 }

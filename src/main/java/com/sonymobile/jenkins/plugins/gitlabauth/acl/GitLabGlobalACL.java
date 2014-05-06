@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.acegisecurity.Authentication;
 import org.apache.commons.lang.StringUtils;
@@ -54,33 +55,51 @@ import hudson.security.Permission;
 public class GitLabGlobalACL extends GitLabAbstactACL {
     /** GitLab usernames with admin rights on Jenkins. */
     private List<String> adminUsernames;
+    
+    /** GitLab groups with admin rights on Jenkins. */
+    private List<String> adminGroups;
+    
     /** If we want all GitLab admins to be Jenkins admins aswell. */
     private boolean useGitLabAdmins;
+    
+    /** Logger for this class. */
+    private final Logger LOGGER = Logger.getLogger(GitLabGlobalACL.class.getName());
     
     /**
      * Creates a global ACL to use for GitLabAuthorization.
      * 
-     * @param adminUsernames     the admin usernames seperated by a comma
+     * Identities such as usernames and groups should be separated by commas.
+     * Example: "myUsername, anotherUsername"
+     * Example: "myGroup, anotherGroup"
+     * 
+     * @param adminUsernames     the admin usernames
+     * @param adminGroups        the admin groups
      * @param useGitLabAdmins    if GitLab admins should also be Jenkins admins
      * @param grantedPermissions map of roles and their respective granted permissions
      */
-    public GitLabGlobalACL(String adminUsernames, boolean useGitLabAdmins, Map<String, List<Permission>> grantedPermissions) {
+    public GitLabGlobalACL(String adminUsernames, String adminGroups, boolean useGitLabAdmins, Map<String, List<Permission>> grantedPermissions) {
         super(grantedPermissions);
         this.useGitLabAdmins = useGitLabAdmins;
-        this.adminUsernames = new ArrayList<String>();
+        this.adminUsernames = splitAdminIdentitiesIntoList(adminUsernames);
+        this.adminGroups = splitAdminIdentitiesIntoList(adminGroups);
+    }
+    
+    private List<String> splitAdminIdentitiesIntoList(String adminIdentities) {
+        List<String> list = new ArrayList<String>();
         
-        if (adminUsernames != null && adminUsernames.length() > 0) {
-            adminUsernames = adminUsernames.trim();
-            String[] split = adminUsernames.split(",");
+        if (adminIdentities != null && adminIdentities.length() > 0) {
+            adminIdentities = adminIdentities.trim();
+            String[] split = adminIdentities.split(",");
             
             for (int i = 0; i < split.length; i++) {
                 split[i] = split[i].trim();
                 
                 if (!split[i].isEmpty()) {
-                    this.adminUsernames.add(split[i]);
+                    list.add(split[i]);
                 }
             }
         }
+        return list;
     }
 
     /**
@@ -120,9 +139,10 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
      */
     public boolean isAdmin(GitLabUserDetails user) {
         try {
+            //TODO: Implement check to GitLab to check if user is group member of an admin group.
             return adminUsernames.contains(user.getUsername()) || (useGitLabAdmins && GitLab.isAdmin(user.getId()));
         } catch (GitLabApiException e) {
-            //TODO: Logger: connection failed.
+            LOGGER.warning("Connection to the GitLab API failed.");
         }
         return false;
     }
@@ -132,10 +152,21 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
      * 
      * The usernames are separated by commas.
      * 
-     * @return a string with usernames separated by commas
+     * @return a string with GitLab usernames
      */
     public String getAdminUsernames() {
         return StringUtils.join(adminUsernames.iterator(), ", ");
+    }
+    
+    /**
+     * Returns a string with GitLab groups who has admin access in Jenkins.
+     * 
+     * The groups are separated by commas.
+     * 
+     * @return a string with GitLab groups
+     */
+    public String getAdminGroups() {
+        return StringUtils.join(adminGroups.iterator(), ", ");
     }
     
     /**
@@ -153,7 +184,8 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
      */
     public static class ConverterImpl implements Converter {
     	private static final String XML_FIELD_PERMISSION = "permission";
-    	private static final String XML_FIELD_ADMIN = "admin";
+    	private static final String XML_FIELD_ADMINUSERNAMES = "adminUsername";
+    	private static final String XML_FIELD_ADMINGROUPS = "adminGroup";
     	private static final String XML_FIELD_USEGITLABADMINS = "useGitLabAdmins";
     	
         public boolean canConvert(Class clazz) {
@@ -172,8 +204,14 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
             writer.endNode();
             
             for (int i = 0; i < acl.adminUsernames.size(); i++) {
-                writer.startNode(XML_FIELD_ADMIN);
+                writer.startNode(XML_FIELD_ADMINUSERNAMES);
                 writer.setValue(acl.adminUsernames.get(i));
+                writer.endNode();
+            }
+            
+            for (int i = 0; i < acl.adminGroups.size(); i++) {
+                writer.startNode(XML_FIELD_ADMINGROUPS);
+                writer.setValue(acl.adminGroups.get(i));
                 writer.endNode();
             }
             
@@ -195,6 +233,7 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
         public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context) {
             HashMap<String, List<Permission>> grantedPermissions = new HashMap<String, List<Permission>>();
             ArrayList<String> adminUsernames = new ArrayList<String>();
+            ArrayList<String> adminGroups = new ArrayList<String>();
             boolean useGitLabAdmins = false;
             
             while (reader.hasMoreChildren()) {
@@ -214,13 +253,18 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
                     }
                 } else if (XML_FIELD_USEGITLABADMINS.equals(reader.getNodeName())) {
                     useGitLabAdmins = Boolean.valueOf(reader.getValue());
-                } else if (XML_FIELD_ADMIN.equals(reader.getNodeName())) {
+                } else if (XML_FIELD_ADMINUSERNAMES.equals(reader.getNodeName())) {
                     adminUsernames.add(reader.getValue());
+                } else if (XML_FIELD_ADMINGROUPS.equals(reader.getNodeName())) {
+                    adminGroups.add(reader.getValue());
                 }
                 
                 reader.moveUp();
             }
-            return new GitLabGlobalACL(StringUtils.join(adminUsernames.iterator(), ", "), useGitLabAdmins, grantedPermissions);
+            
+            String adminUsernameString = StringUtils.join(adminUsernames.iterator(), ", ");
+            String adminGroupString = StringUtils.join(adminGroups.iterator(), ", ");
+            return new GitLabGlobalACL(adminUsernameString, adminGroupString, useGitLabAdmins, grantedPermissions);
         }
     }
 }

@@ -44,7 +44,6 @@ import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevels;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabGlobalACL;
 
 import hudson.Extension;
-import hudson.model.ItemGroup;
 import hudson.model.AbstractItem;
 import hudson.model.Descriptor;
 import hudson.model.Job;
@@ -66,11 +65,12 @@ public class GitLabAuthorization extends AuthorizationStrategy {
      * Creates an Authorization Strategy for GitLab.
      * 
      * @param adminUsernames     the admin usernames seperated by a comma
+     * @param adminGroups        the admin groups seperated by a comma
      * @param useGitLabAdmins    if GitLab admins should be Jenkins admins
      * @param grantedPermissions map of all Jenkins roles and their respective granted permissions
      */
-    public GitLabAuthorization(String adminUsernames, boolean useGitLabAdmins, Map<String, List<Permission>> grantedPermissions) {
-        rootACL = new GitLabGlobalACL(adminUsernames, useGitLabAdmins, grantedPermissions);
+    public GitLabAuthorization(String adminUsernames, String adminGroups, boolean useGitLabAdmins, Map<String, List<Permission>> grantedPermissions) {
+        rootACL = new GitLabGlobalACL(adminUsernames, adminGroups, useGitLabAdmins, grantedPermissions);
     }
     
     /**
@@ -82,6 +82,17 @@ public class GitLabAuthorization extends AuthorizationStrategy {
      */
     public String getAdminUsernames() {
         return rootACL.getAdminUsernames();
+    }
+    
+    /**
+     * Returns a string with GitLab group names who has full admin access in Jenkins.
+     * 
+     * The group names are separated by commas.
+     * 
+     * @return a string with group names separated by commas
+     */
+    public String getAdminGroups() {
+        return rootACL.getAdminGroups();
     }
     
     /**
@@ -172,6 +183,7 @@ public class GitLabAuthorization extends AuthorizationStrategy {
         @Override
         public GitLabAuthorization newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             String adminUsernames = formData.getString("adminUsernames");
+            String adminGroups = formData.getString("adminGroups");
             boolean useGitLabAdmins = formData.getBoolean("useGitLabAdmins");
 
             HashMap<String, List<Permission>> grantedPermissions = new HashMap<String, List<Permission>>();
@@ -194,7 +206,7 @@ public class GitLabAuthorization extends AuthorizationStrategy {
                 }
             }
             
-            return new GitLabAuthorization(adminUsernames, useGitLabAdmins, grantedPermissions);
+            return new GitLabAuthorization(adminUsernames, adminGroups, useGitLabAdmins, grantedPermissions);
         }
         
         /**

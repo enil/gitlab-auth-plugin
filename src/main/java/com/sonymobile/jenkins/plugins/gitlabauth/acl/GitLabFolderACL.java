@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import jenkins.model.Jenkins;
 
@@ -57,12 +58,12 @@ public class GitLabFolderACL extends GitLabAbstactACL {
     /** The group id associated with this ACL */
     private int groupId;
     
+    /** Logger for this class. */
+    private final Logger LOGGER = Logger.getLogger(GitLabFolderACL.class.getName());
+    
     /**
      * Creates a folder ACL to use for GitLabFolderAuthorization.
      * 
-     * The GitLabGroupInfo should contain information about the group.
-     * 
-     * @param group the group associated with this ACL
      * @param grantedPermissions map of roles and their respective granted permissions
      */
     public GitLabFolderACL(Map<String, List<Permission>> grantedPermissions) {
@@ -101,7 +102,7 @@ public class GitLabFolderACL extends GitLabAbstactACL {
                     return true;
                 }
             } catch (GitLabApiException e) {
-                //TODO: Logger: Connection to the API failed.
+                LOGGER.warning("Connection to the GitLab API failed.");
             }
             
             if (isAdmin(user)) {
