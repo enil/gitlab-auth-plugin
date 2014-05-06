@@ -49,7 +49,7 @@ import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 
 /**
- * Folder ACL for GitLab
+ * Folder ACL for GitLab.
  * 
  * @author Andreas Alanko
  */
@@ -60,10 +60,22 @@ public class GitLabFolderACL extends GitLabAbstactACL {
     /**
      * Creates a folder ACL to use for GitLabFolderAuthorization.
      * 
+     * The GitLabGroupInfo should contain information about the group.
+     * 
+     * @param group the group associated with this ACL
      * @param grantedPermissions map of roles and their respective granted permissions
      */
     public GitLabFolderACL(Map<String, List<Permission>> grantedPermissions) {
         super(grantedPermissions);
+    }
+    
+    /**
+     * Sets the group id associated with this ACL.
+     * 
+     * @param groupId the group id
+     */
+    public void setGroupId(int groupId) {
+        this.groupId = groupId;
     }
 
     /**
@@ -142,6 +154,7 @@ public class GitLabFolderACL extends GitLabAbstactACL {
      */
     public static class ConverterImpl implements Converter {
         private static final String XML_FIELD_PERMISSION = "permission";
+        private static final String XML_FIELD_GROUPID = "groupId";
         
         public boolean canConvert(Class clazz) {
             return clazz.equals(GitLabFolderACL.class);
@@ -153,6 +166,10 @@ public class GitLabFolderACL extends GitLabAbstactACL {
          */
         public void marshal(Object value, HierarchicalStreamWriter writer, MarshallingContext context) {
             GitLabFolderACL acl = (GitLabFolderACL) value;
+            
+            writer.startNode(XML_FIELD_GROUPID);
+            writer.setValue(String.valueOf(acl.groupId));
+            writer.endNode();
             
             for (String role : acl.getGrantedPermissions().keySet()) {
                 List<Permission> permissions = acl.getGrantedPermissions().get(role);
@@ -171,6 +188,7 @@ public class GitLabFolderACL extends GitLabAbstactACL {
          */
         public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context) {
             HashMap<String, List<Permission>> grantedPermissions = new HashMap<String, List<Permission>>();
+            int groupId = -1;
             
             while (reader.hasMoreChildren()) {
                 reader.moveDown();
@@ -187,10 +205,19 @@ public class GitLabFolderACL extends GitLabAbstactACL {
                             grantedPermissions.get(value[0]).add(p);
                         }
                     }
+                } else if (XML_FIELD_GROUPID.equals(reader.getNodeName())) {
+                        try {
+                            groupId = Integer.parseInt(reader.getValue());
+                        } catch (NumberFormatException e) {
+                            e.printStackTrace();
+                        }
                 }
                 reader.moveUp();
             }
-            return new GitLabFolderACL(grantedPermissions);
+            
+            GitLabFolderACL acl = new GitLabFolderACL(grantedPermissions);
+            acl.setGroupId(groupId);
+            return acl;
         }
     }
 }

@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.StaplerRequest;
@@ -40,6 +41,7 @@ import com.cloudbees.hudson.plugins.folder.FolderProperty;
 import com.cloudbees.hudson.plugins.folder.FolderPropertyDescriptor;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
+import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevels;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabFolderACL;
 
@@ -56,6 +58,7 @@ import hudson.security.PermissionGroup;
  */
 public class GitLabFolderAuthorization extends FolderProperty<Folder> {
     private GitLabFolderACL folderACL;
+    private int groupId;
     
     public GitLabFolderAuthorization(Map<String, List<Permission>> grantedFolderPermissions) {
         this.folderACL = new GitLabFolderACL(grantedFolderPermissions);
@@ -70,6 +73,45 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
         return folderACL;
     }
     
+    /**
+     * Gets the group id for this folder.
+     * 
+     * @return the groupId
+     */
+    public int getGroupId() {
+        return groupId;
+    }
+
+    /**
+     * Sets the group id of this folder.
+     * 
+     * @param groupId the groupId to set
+     */
+    public void setGroupId(int groupId) {
+        this.groupId = groupId;
+        folderACL.setGroupId(groupId);
+    }
+
+    /**
+     * Gets the group path for this folder.
+     * 
+     * @return the groupPath
+     */
+    public String getGroupPath() {
+        //TODO: Should get group info from GitLab instance.
+        return "";
+    }
+
+    /**
+     * Gets the group name for this folder.
+     * 
+     * @return the groupName
+     */
+    public String getGroupName() {
+        //TODO: Should get group info from GitLab instance.
+        return "";
+    }
+
     /**
      * Checks if the given GitLab role has the given permission.
      * 
@@ -143,8 +185,7 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
         @Override
         public boolean isApplicable(Class<? extends Folder> containerType) {
             try {
-                //return Jenkins.getInstance().getAuthorizationStrategy() instanceof GitLabAuthorization;
-                return true;
+                return Jenkins.getInstance().getAuthorizationStrategy() instanceof GitLabAuthorization;
             } catch (NoClassDefFoundError e) {
                 return false;
             }

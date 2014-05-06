@@ -99,6 +99,7 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
                     return true;
                 }
             }
+            
             if (isPermissionSet(JenkinsAccessLevels.LOGGED_IN, permission)) {
                 return true;
             }
