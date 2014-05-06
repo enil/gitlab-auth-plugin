@@ -35,6 +35,8 @@ import org.acegisecurity.Authentication;
 import org.apache.commons.lang.StringUtils;
 
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
+import com.sonymobile.gitlab.model.GitLabGroupInfo;
+import com.sonymobile.gitlab.model.GitLabGroupMemberInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevels;
 import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
@@ -139,7 +141,15 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
      */
     public boolean isAdmin(GitLabUserDetails user) {
         try {
-            //TODO: Implement check to GitLab to check if user is group member of an admin group.
+            GitLabGroupMemberInfo groupMember;
+            
+            for (int i = 0; i < adminGroups.size(); i++) {
+                groupMember = GitLab.getGroupMember(user.getId(), adminGroups.get(i));
+                
+                if(groupMember != null && !groupMember.isBlocked()) {
+                    return true;
+                }
+            }
             return adminUsernames.contains(user.getUsername()) || (useGitLabAdmins && GitLab.isAdmin(user.getId()));
         } catch (GitLabApiException e) {
             LOGGER.warning("Connection to the GitLab API failed.");
