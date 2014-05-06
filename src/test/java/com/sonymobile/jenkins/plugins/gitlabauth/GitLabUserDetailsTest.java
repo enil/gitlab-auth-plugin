@@ -2,6 +2,8 @@ package com.sonymobile.jenkins.plugins.gitlabauth;
 
 import com.sonymobile.gitlab.helpers.JsonFileLoader;
 import com.sonymobile.gitlab.model.GitLabSessionInfo;
+import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
+
 import org.junit.Before;
 import org.junit.Test;
 

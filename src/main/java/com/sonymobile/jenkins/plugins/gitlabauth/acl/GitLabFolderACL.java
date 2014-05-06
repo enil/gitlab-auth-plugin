@@ -36,9 +36,9 @@ import jenkins.model.Jenkins;
 
 import org.acegisecurity.Authentication;
 
-import com.sonymobile.jenkins.plugins.gitlabauth.GitLabAuthorization;
-import com.sonymobile.jenkins.plugins.gitlabauth.GitLabUserDetails;
 import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevels;
+import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabAuthorization;
+import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;

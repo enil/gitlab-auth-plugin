@@ -34,7 +34,7 @@ import java.util.Map;
 
 import org.acegisecurity.Authentication;
 
-import com.sonymobile.jenkins.plugins.gitlabauth.GitLabUserDetails;
+import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
 
 /**
  * Abstract ACL class for other GitLab ACLs to extend.
