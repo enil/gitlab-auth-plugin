@@ -27,12 +27,15 @@ package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
+import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
 import com.sonymobile.jenkins.plugins.gitlabauth.exceptions.ItemNameCollisionException;
 import hudson.model.TopLevelItem;
 import hudson.model.TopLevelItemDescriptor;
 import jenkins.model.ModifiableTopLevelItemGroup;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A class for creating
@@ -57,28 +60,50 @@ public class GitLabFolderCreator implements GitLabFolderSynchronizer.FolderCreat
         this.folderDescriptor = folderDescriptor;
     }
 
+    public Folder createOrGetGitLabGroupFolder(GitLabGroupInfo group, Map<Integer, Folder> existingFolders)
+            throws ItemNameCollisionException, IOException {
+        Folder folder;
+
+        // check if folder needs to be created
+        if ((folder = existingFolders.get(group.getId())) == null) {
+            folder = createGitLabGroupFolder(group);
+        }
+
+        return folder;
+    }
+
+    public Map<Integer, Folder> getExistingGitLabGroupFolders() {
+        Map<Integer, Folder> existingFolders = new HashMap<Integer, Folder>();
+
+        for (final TopLevelItem item : itemGroup.getItems()) {
+            if (item instanceof Folder) {
+                Folder folder = (Folder)item;
+                GitLabFolderAuthorization property = folder.getProperties().get(GitLabFolderAuthorization.class);
+
+                // make sure the GitLab authorization property is set folder
+                if (property != null) {
+                    existingFolders.put(property.getGroupId(), folder);
+                }
+            }
+        }
+
+        return existingFolders;
+    }
+
     /**
-     * Creates a new folder for a GitLab group or return an already existing one.
+     * Creates a new folder for a GitLab group.
      *
      * @param group the GitLab group
      * @return the folder
      * @throws ItemNameCollisionException if an item with the name already existed
      * @throws IOException                if saving to persistent storage failed
      */
-    public Folder createOrGetGitLabGroup(GitLabGroupInfo group) throws ItemNameCollisionException, IOException {
-        TopLevelItem item;
-
-        if ((item = itemGroup.getItem(group.getPath())) != null) {
-            if (item instanceof Folder) {
-                // group already present
-                return (Folder)item;
-            } else {
-                throw new ItemNameCollisionException("Cannot create folder because an item with the name "
-                        + group.getPath() + " already exists");
-            }
-        } else {
-            // create a new group
+    private Folder createGitLabGroupFolder(GitLabGroupInfo group) throws ItemNameCollisionException, IOException {
+        try {
             return (Folder)itemGroup.createProject(folderDescriptor, group.getPath(), true);
+        } catch (IllegalArgumentException e) {
+            throw new ItemNameCollisionException("Cannot create folder because an item with the name "
+                    + group.getPath() + " already exists");
         }
     }
 }

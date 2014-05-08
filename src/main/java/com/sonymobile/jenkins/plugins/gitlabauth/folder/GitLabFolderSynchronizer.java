@@ -33,6 +33,7 @@ import com.sonymobile.jenkins.plugins.gitlabauth.exceptions.ItemNameCollisionExc
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -63,10 +64,11 @@ public class GitLabFolderSynchronizer {
      */
     public void synchronizeGroupFolders() throws GitLabApiException {
         List<GitLabGroupInfo> groups = GitLab.getGroups();
+        Map<Integer, Folder> folders = folderCreator.getExistingGitLabGroupFolders();
 
         for (GitLabGroupInfo group : groups) {
             try {
-                folderCreator.createOrGetGitLabGroup(group);
+                folderCreator.createOrGetGitLabGroupFolder(group, folders);
             } catch (ItemNameCollisionException e) {
                 LOGGER.warning("Could not create GitLab folder group \"" + group + "\": item already exists");
             } catch (IOException e) {
@@ -79,6 +81,23 @@ public class GitLabFolderSynchronizer {
      * An interface used to create folders for GitLab groups.
      */
     public interface FolderCreator {
-        public Folder createOrGetGitLabGroup(GitLabGroupInfo group) throws ItemNameCollisionException, IOException;
+        /**
+         * Creates a new folder for a GitLab group or return an already existing one.
+         *
+         * @param group           the GitLab group
+         * @param existingFolders a map of the existing folders (mapped from group IDs to folders)
+         * @return the folder
+         * @throws ItemNameCollisionException if an item with the name already existed
+         * @throws IOException                if saving to persistent storage failed
+         */
+        public Folder createOrGetGitLabGroupFolder(GitLabGroupInfo group, Map<Integer, Folder> existingFolders)
+                throws ItemNameCollisionException, IOException;
+
+        /**
+         * Returns a map of existing folders for GitLab groups.
+         *
+         * @return a map from group IDs to folders
+         */
+        public Map<Integer, Folder> getExistingGitLabGroupFolders();
     }
 }

@@ -39,7 +39,7 @@ import java.util.List;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabModelDataCreator.createGroupInfo;
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockTopLevelItemCreator.createMockFolder;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockFolderBuilder.mockFolder;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -87,10 +87,10 @@ public class GitLabFolderSynchronizerTest {
         GitLabGroupInfo secondGroup = createGroupInfo(2, "Second Group", "second");
         groups = newArrayList(firstGroup, secondGroup);
 
-        expect(mockFolderCreator.createOrGetGitLabGroup(firstGroup)).
-                andReturn(createMockFolder("first"));
-        expect(mockFolderCreator.createOrGetGitLabGroup(secondGroup)).
-                andReturn(createMockFolder("second"));
+        expect(mockFolderCreator.createOrGetGitLabGroupFolder(firstGroup, null)).
+                andReturn(mockFolder().name("first").build());
+        expect(mockFolderCreator.createOrGetGitLabGroupFolder(secondGroup, null)).
+                andReturn(mockFolder().name("second").build());
         replay(mockFolderCreator);
 
         // synchronize the groups from GitLab and expect it to try to create each of them
