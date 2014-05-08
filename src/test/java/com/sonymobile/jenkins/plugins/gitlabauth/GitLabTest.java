@@ -45,10 +45,10 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabMockDataLoaders.loadAdminUser;
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabMockDataLoaders.loadGroupMembers;
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabMockDataLoaders.loadGroups;
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabMockDataLoaders.loadUser;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataLoaders.loadAdminUser;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataLoaders.loadGroupMembers;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataLoaders.loadGroups;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataLoaders.loadUser;
 import static org.apache.commons.lang.StringUtils.EMPTY;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
