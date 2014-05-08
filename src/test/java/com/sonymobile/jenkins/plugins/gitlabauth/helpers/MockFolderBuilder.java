@@ -1,0 +1,101 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2014 Andreas Alanko, Emil Nilsson, Sony Mobile Communications AB.
+ * All rights reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+package com.sonymobile.jenkins.plugins.gitlabauth.helpers;
+
+import com.cloudbees.hudson.plugins.folder.Folder;
+import com.cloudbees.hudson.plugins.folder.FolderProperty;
+import hudson.util.DescribableList;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+
+/**
+ * A builder for creating mock instances of {@link Folder} objects.
+ *
+ * @author Emil Nilsson
+ */
+public class MockFolderBuilder extends MockTopLevelItemBuilder<Folder, MockFolderBuilder> {
+    /** The properties of the folder. */
+    private final Map<Class, FolderProperty> folderProperties = new HashMap<Class, FolderProperty>();
+
+    /**
+     * Creates a builder object.
+     */
+    public MockFolderBuilder() {
+        super(Folder.class);
+    }
+
+    /**
+     * Creates a builder for the {@link Folder} class.
+     *
+     * @return a builder
+     */
+    public static MockFolderBuilder mockFolder() {
+        return new MockFolderBuilder();
+    }
+
+    /**
+     * Adds a property to the property list.
+     *
+     * @param property the property
+     * @return this object for chaining
+     */
+    public MockFolderBuilder addProperty(FolderProperty property) {
+        folderProperties.put(property.getClass(), property);
+        return this;
+    }
+
+    @Override
+    protected final Folder createMockItem() {
+        // mock the common item methods
+        Folder folder = super.createMockItem();
+
+        // mock the property list
+        DescribableList propertyList = createMock(DescribableList.class);
+        expect(folder.getProperties()).andReturn(propertyList);
+
+        if (!folderProperties.isEmpty()) {
+            // add all the properties to the mock property list
+            for (Map.Entry<Class, FolderProperty> entry : folderProperties.entrySet()) {
+                Class<FolderProperty> propertyClass = entry.getKey();
+                FolderProperty property = entry.getValue();
+
+                expect(propertyList.get(propertyClass)).andReturn(property);
+            }
+        }
+        // return null all other properties
+        expect(propertyList.get(anyObject(Class.class))).andReturn(null);
+
+        replay(propertyList);
+
+        return folder;
+    }
+}
