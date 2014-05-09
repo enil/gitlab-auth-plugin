@@ -38,11 +38,9 @@ import com.sonymobile.gitlab.model.GitLabGroupMemberInfo;
 import com.sonymobile.gitlab.model.GitLabUserInfo;
 import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfiguration;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -112,6 +110,17 @@ public class GitLab {
     }
 
     /**
+     * Gets a group.
+     *
+     * @param groupId ID of the group.
+     * @return a group for the ID or null if the group doesn't exist
+     * @throws GitLabApiException if the connection against GitLab failed
+     */
+    public static GitLabGroupInfo getGroup(int groupId) throws GitLabApiException {
+        return instance.getGroup(groupId);
+    }
+
+    /**
      * Gets the group for a specified path.
      *
      * @param groupPath the group path
@@ -178,7 +187,7 @@ public class GitLab {
         private final LoadingCache<Integer, Map<Integer, GitLabGroupMemberInfo>> cachedGroupMemberships;
 
         /** A cache for storing groups. */
-        private final LoadingCache<Any, Map<String, GitLabGroupInfo>> cachedGroups;
+        private final LoadingCache<Any, GitLabGroupRegistry> cachedGroups;
 
         /**
          * Creates a new standard implementation.
@@ -252,7 +261,25 @@ public class GitLab {
          */
         public List<GitLabGroupInfo> getGroups() throws GitLabApiException {
             try {
-                return new ArrayList<GitLabGroupInfo>(cachedGroups.get(Any.anyValue).values());
+                return cachedGroups.get(Any.anyValue).asList();
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof GitLabApiException) {
+                    // throw any GitLabApiExceptions
+                    throw (GitLabApiException)e.getCause();
+                } else {
+                    // throw any other unexpected exceptions
+                    throw new RuntimeException(e.getCause());
+                }
+            }
+        }
+
+        /**
+         * @see GitLab#getGroup(int)
+         */
+        public GitLabGroupInfo getGroup(int groupId) throws GitLabApiException {
+            try {
+                // get group by group ID or null if not found
+                return cachedGroups.get(Any.anyValue).getById(groupId);
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof GitLabApiException) {
                     // throw any GitLabApiExceptions
@@ -269,7 +296,8 @@ public class GitLab {
          */
         public GitLabGroupInfo getGroupByPath(String path) throws GitLabApiException {
             try {
-                return cachedGroups.get(Any.anyValue).get(path);
+                // get group by path or null if not found
+                return cachedGroups.get(Any.anyValue).getByPath(path);
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof GitLabApiException) {
                     // throw any GitLabApiExceptions
@@ -314,17 +342,11 @@ public class GitLab {
         /**
          * Cache loader for getting groups from the API.
          */
-        private class GroupsCacheLoader extends CacheLoader<Any, Map<String, GitLabGroupInfo>> {
+        private class GroupsCacheLoader extends CacheLoader<Any, GitLabGroupRegistry> {
             @Override
-            public Map<String, GitLabGroupInfo> load(Any key) throws Exception {
-                List<GitLabGroupInfo> groupList = getApiClient().getGroups();
-
-                // create and return map with groupPath -> group
-                Map<String, GitLabGroupInfo> groups = new TreeMap<String, GitLabGroupInfo>();
-                for (GitLabGroupInfo group : groupList) {
-                    groups.put(group.getPath(), group);
-                }
-                return groups;
+            public GitLabGroupRegistry load(Any key) throws Exception {
+                // load the groups and put them in a registry
+                return new GitLabGroupRegistry(getApiClient().getGroups());
             }
         }
 

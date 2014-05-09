@@ -295,6 +295,22 @@ public class GitLabTest {
         }
     }
 
+
+    @Test
+    public void getGroup() throws Exception {
+        expect(mockApiClient.getGroups()).andReturn(loadGroups());
+        replay(mockApiClient);
+
+        GitLabGroupInfo group = GitLab.getGroup(1);
+
+        assertThat("Group should exist", group, is(notNullValue()));
+        assertThat(group.getId(), is(1));
+
+        assertThat("Group should not exist", GitLab.getGroup(1000), is(nullValue()));
+
+        verify(mockApiClient);
+    }
+
     @Test
     public void getGroupByPath() throws Exception {
         expect(mockApiClient.getGroups()).andReturn(loadGroups());
