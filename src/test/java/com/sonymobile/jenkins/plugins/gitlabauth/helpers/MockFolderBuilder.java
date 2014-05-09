@@ -27,7 +27,9 @@ package com.sonymobile.jenkins.plugins.gitlabauth.helpers;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.cloudbees.hudson.plugins.folder.FolderProperty;
+import hudson.model.Describable;
 import hudson.util.DescribableList;
+import org.easymock.IAnswer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,6 +37,8 @@ import java.util.Map;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.getCurrentArguments;
 import static org.easymock.EasyMock.replay;
 
 /**
@@ -63,6 +67,16 @@ public class MockFolderBuilder extends MockTopLevelItemBuilder<Folder, MockFolde
     }
 
     /**
+     * Creates a new folder.
+     *
+     * @param name the name of the folder
+     * @return the folder
+     */
+    public static Folder folder(String name) {
+        return mockFolder().name(name).build();
+    }
+
+    /**
      * Adds a property to the property list.
      *
      * @param property the property
@@ -74,7 +88,7 @@ public class MockFolderBuilder extends MockTopLevelItemBuilder<Folder, MockFolde
     }
 
     @Override
-    protected final Folder createMockItem() {
+    protected final Folder createMockItem() throws Exception {
         // mock the common item methods
         Folder folder = super.createMockItem();
 
@@ -82,17 +96,21 @@ public class MockFolderBuilder extends MockTopLevelItemBuilder<Folder, MockFolde
         DescribableList propertyList = createMock(DescribableList.class);
         expect(folder.getProperties()).andReturn(propertyList);
 
-        if (!folderProperties.isEmpty()) {
-            // add all the properties to the mock property list
-            for (Map.Entry<Class, FolderProperty> entry : folderProperties.entrySet()) {
-                Class<FolderProperty> propertyClass = entry.getKey();
-                FolderProperty property = entry.getValue();
-
-                expect(propertyList.get(propertyClass)).andReturn(property);
+        // mock adding properties
+        folder.addProperty(anyObject(FolderProperty.class));
+        expectLastCall().andAnswer(new IAnswer<Void>() {
+            public Void answer() throws Throwable {
+                addProperty((FolderProperty)getCurrentArguments()[0]);
+                return null;
             }
-        }
-        // return null all other properties
-        expect(propertyList.get(anyObject(Class.class))).andReturn(null);
+        });
+
+        // mock getting properties
+        expect(propertyList.get(anyObject(Class.class))).andAnswer(new IAnswer<Describable>() {
+            public Describable answer() throws Throwable {
+                return folderProperties.get(getCurrentArguments()[0]);
+            }
+        });
 
         replay(propertyList);
 

@@ -25,6 +25,7 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth.helpers;
 
+import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.model.TopLevelItem;
 
 import static org.easymock.EasyMock.createMock;
@@ -62,7 +63,23 @@ public class MockTopLevelItemBuilder<ITEM extends TopLevelItem, BUILDER extends 
      * @return a builder
      */
     public static <ITEMTYPE extends TopLevelItem> MockTopLevelItemBuilder mockItem(Class<ITEMTYPE> itemType) {
-        return new MockTopLevelItemBuilder<ITEMTYPE, MockTopLevelItemBuilder>(itemType);
+        if (itemType == Folder.class) {
+            return new MockFolderBuilder();
+        } else {
+            return new MockTopLevelItemBuilder<ITEMTYPE, MockTopLevelItemBuilder>(itemType);
+        }
+    }
+
+    /**
+     * Creates a new item of a specified type.
+     *
+     * @param itemType   the class for the item type
+     * @param name       the name of the item
+     * @param <ITEMTYPE> type parameter of the item class
+     * @return the top level item
+     */
+    public static <ITEMTYPE extends TopLevelItem> ITEMTYPE item(Class<ITEMTYPE> itemType, String name) {
+        return (ITEMTYPE)mockItem(itemType).name(name).build();
     }
 
     /**
@@ -71,7 +88,7 @@ public class MockTopLevelItemBuilder<ITEM extends TopLevelItem, BUILDER extends 
      * @param name the name
      * @return this object for chaining
      */
-    public BUILDER name(String name) {
+    public final BUILDER name(String name) {
         this.name = name;
         return (BUILDER)this;
     }
@@ -82,10 +99,26 @@ public class MockTopLevelItemBuilder<ITEM extends TopLevelItem, BUILDER extends 
      * @return the top level item
      */
     public final ITEM build() {
-        ITEM item = createMockItem();
+        ITEM item = mock();
         replay(item);
 
         return item;
+    }
+
+    /**
+     * Creates a top level mock item for item type.
+     *
+     * The item has to be replayed before use.
+     *
+     * @return the top level item
+     */
+    public final ITEM mock() {
+        try {
+            return createMockItem();
+        } catch (Exception e) {
+            // rethrow all exceptions as runtime exceptions
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -94,8 +127,9 @@ public class MockTopLevelItemBuilder<ITEM extends TopLevelItem, BUILDER extends 
      * This method might be overridden in subclasses to add method expectations before the mock item is replayed.
      *
      * @return the top level item
+     * @throws Exception if any error happened
      */
-    protected ITEM createMockItem() {
+    protected ITEM createMockItem() throws Exception {
         ITEM item = createMock(itemClass);
 
         if (name != null) {

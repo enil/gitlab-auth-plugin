@@ -63,9 +63,9 @@ public class MockDataCreators {
      */
     public static GitLabGroupInfo mockGroupInfo(int groupId, String name, String path) {
         GitLabGroupInfo groupInfo = createNiceMock(GitLabGroupInfo.class);
-        expect(groupInfo.getId()).andReturn(groupId);
-        expect(groupInfo.getName()).andReturn(name);
-        expect(groupInfo.getPath()).andReturn(path);
+        expect(groupInfo.getId()).andReturn(groupId).anyTimes();
+        expect(groupInfo.getName()).andReturn(name).anyTimes();
+        expect(groupInfo.getPath()).andReturn(path).anyTimes();
         replay(groupInfo);
 
         return groupInfo;
