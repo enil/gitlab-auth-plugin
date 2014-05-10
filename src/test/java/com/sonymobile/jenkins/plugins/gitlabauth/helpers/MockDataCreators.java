@@ -47,8 +47,7 @@ public class MockDataCreators {
      * @return a folder property object
      */
     public static GitLabFolderAuthorization mockFolderAuthorization(int groupId) {
-        GitLabFolderAuthorization folderAuthorization = new GitLabFolderAuthorization(null);
-        folderAuthorization.setGroupId(groupId);
+        GitLabFolderAuthorization folderAuthorization = new GitLabFolderAuthorization(groupId);
 
         return folderAuthorization;
     }

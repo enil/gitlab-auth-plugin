@@ -100,7 +100,10 @@ public class GitLabFolderCreator implements GitLabFolderSynchronizer.FolderCreat
      */
     private Folder createGitLabGroupFolder(GitLabGroupInfo group) throws ItemNameCollisionException, IOException {
         try {
-            return (Folder)itemGroup.createProject(folderDescriptor, group.getPath(), true);
+            Folder folder = (Folder)itemGroup.createProject(folderDescriptor, group.getPath(), true);
+            folder.addProperty(new GitLabFolderAuthorization(group.getId()));
+
+            return folder;
         } catch (IllegalArgumentException e) {
             throw new ItemNameCollisionException("Cannot create folder because an item with the name "
                     + group.getPath() + " already exists");

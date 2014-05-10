@@ -1,50 +1,64 @@
-package com.sonymobile.jenkins.plugins.gitlabauth.GitLabFolderAuthorization
+package com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization
 
 def f = namespace("/lib/form")
-def j = namespace("jelly:core")
+
+def itemPermissionGroup = descriptor.itemPermissionGroup
+
+f.section(title: "GitLab Group") {
+    f.block {
+        div {
+            b { text "Group ID: " }
+            text instance?.groupId
+        }
+        div {
+            b { text "Group name: " }
+            text instance?.groupName
+        }
+        div {
+            b { text "Group path: " }
+            text instance?.groupPath
+        }
+    }
+}
 
 f.section(title: "GitLab Folder Authorization") {
-    f.block() {
-        link(rel: "stylesheet", href: rootURL+"/plugin/gitlab-auth/table.css", type: "text/css")
-        
-        def itemPermissionGroup = descriptor.itemPermissionGroup
-        
+    f.block {
+        link rel: "stylesheet", href: rootURL+"/plugin/gitlab-auth/table.css", type: "text/css"
+
         table("class": "center-align global-matrix-authorization-strategy-table", name: "permissionTable") {
             tr {
                 td("class": "pane-header", rowspan: "2") {
-                    text("Permission")
+                    text "Permission"
                     br()
-                    text("Role")
+                    text "Role"
                 }
                 
-                td("class": "pane-header", colspan: itemPermissionGroup.getPermissions().size()) {
-                    text(itemPermissionGroup.title)
+                td("class": "pane-header", colspan: itemPermissionGroup.permissions.size()) {
+                    text itemPermissionGroup.title
                 }
             }
             
             tr {
-                for (p in itemPermissionGroup.getPermissions()) {
+                itemPermissionGroup.each { permission ->
                     td {
-                        if(!p.enabled) {
-                            i {
-                                text(p.name)
-                            }
+                        if (permission.enabled) {
+                            text permission.name
                         } else {
-                            text(p.name)
+                            i { text permission.name }
                         }
                     }
                 }
             }
-            
-            for (role in descriptor.allRoles) {
+
+            descriptor.allRoles.each { role ->
                 tr(name: role) {
                     td {
-                        text(role)
+                        text role
                     }
                     
-                    for (p in itemPermissionGroup.getPermissions()) {
+                    itemPermissionGroup.permissions.each { permission ->
                         td {
-                            f.checkbox(name: "["+p.id+"]", checked: (instance != null) ? instance.isPermissionSet(role, p) : false)
+                            f.checkbox name: "[${permission.id}]", checked: instance?.isPermissionSet(role, permission)
                         }
                     }
                 }
