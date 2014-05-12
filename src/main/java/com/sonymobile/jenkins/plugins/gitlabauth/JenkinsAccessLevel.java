@@ -26,14 +26,47 @@
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
 /**
- * Static holder class for globally available jenkins access levels.
+ * Enum class for Jenkins access levels.
  * 
  * @author Andreas Alanko
  */
-public class JenkinsAccessLevels {
-    public static final String ADMIN = "Admin";
-    public static final String LOGGED_IN = "Logged In";
-    public static final String ANONYMOUS = "Anonymous";
+public enum JenkinsAccessLevel {
+    /** Anonumous access level. */
+    ANONYMOUS("Anonymous"),
     
-    public static final String[] all = {ADMIN, LOGGED_IN, ANONYMOUS};
+    /** Logged in access level. */
+    LOGGED_IN("Logged In"),
+    
+    /** Administrator access level. */
+    ADMIN("Admin");
+    
+    /** Displayable name */
+    public final String displayName;
+    
+    /**
+     * Creates a Jenkins access level enum with the given display name.
+     * 
+     * @param displayName the display name
+     */
+    private JenkinsAccessLevel(String displayName) {
+        this.displayName = displayName;
+    }
+    
+    /**
+     * Returns the access level with the given name.
+     * 
+     * The method doesn't take upper or lower case into consideration.
+     * 
+     * @param name the name
+     * @return a Jenkins access level
+     */
+    public static JenkinsAccessLevel getAccessLevelWithName(String name) {
+        name = name.toUpperCase();
+        for (JenkinsAccessLevel accessLevel : JenkinsAccessLevel.values()) {
+            if (name.equals(accessLevel.name())) {
+                return accessLevel;
+            }
+        }
+        throw new IllegalArgumentException("Invalid access level name"); 
+    }
 }

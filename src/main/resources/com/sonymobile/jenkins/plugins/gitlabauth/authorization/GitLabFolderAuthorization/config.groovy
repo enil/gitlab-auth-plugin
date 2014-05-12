@@ -2,6 +2,7 @@ package com.sonymobile.jenkins.plugins.gitlabauth.GitLabFolderAuthorization
 
 def f = namespace("/lib/form")
 def j = namespace("jelly:core")
+def st = namespace("jelly:stapler")
 
 f.section(title: "GitLab Folder Authorization") {
     f.block() {
@@ -36,15 +37,23 @@ f.section(title: "GitLab Folder Authorization") {
                 }
             }
             
-            for (role in descriptor.allRoles) {
-                tr(name: role) {
+            def identities;
+            
+            if (instance != null) {
+                identities = instance.folderPermissionIdentities
+            } else {
+                identities = descriptor.staticPermissionIdentities
+            }
+            
+            for (identity in identities) {
+                tr(name: identity) {
                     td {
-                        text(role)
+                        text(identity.displayName)
                     }
                     
                     for (p in itemPermissionGroup.getPermissions()) {
                         td {
-                            f.checkbox(name: "["+p.id+"]", checked: (instance != null) ? instance.isPermissionSet(role, p) : false)
+                            f.checkbox(name: "["+p.id+"]", checked: (instance != null) ? instance.isPermissionSet(identity, p) : false)
                         }
                     }
                 }

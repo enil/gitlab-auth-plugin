@@ -25,12 +25,10 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth.acl;
 
+import java.util.List;
+
 import hudson.security.ACL;
 import hudson.security.Permission;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 import org.acegisecurity.Authentication;
 
@@ -42,18 +40,30 @@ import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
  * @author Andreas Alanko
  */
 public abstract class GitLabAbstactACL extends ACL {
-    /** Map of all roles and their respective granted permissions. */
-    private Map<String, List<Permission>> grantedPermissions;
+    /** Contains all identities and their respective granted permissions. */
+    private GitLabGrantedPermissions grantedPermissions;
     
     /**
      * Creates an ACL based on the given map of granted permissions.
      * 
      * @param grantedPermissions map of granted permissions
      */
-    protected GitLabAbstactACL(Map<String, List<Permission>> grantedPermissions) {
+    protected GitLabAbstactACL(GitLabGrantedPermissions grantedPermissions) {
         this.grantedPermissions = grantedPermissions;
     }
     
+    public List<GitLabPermissionIdentity> getPermissionIdentities(boolean getGitLabIdentities) {
+        return grantedPermissions.getPermissionIdentities(getGitLabIdentities);
+    }
+
+    /**
+     * Checks if the given user has admin access on the Jenkins server.
+     * 
+     * @param user the user
+     * @return true is the user has admin access else false
+     */
+    protected abstract boolean isAdmin(GitLabUserDetails user);
+
     /**
      * Checks if the user is logged in and if the principal is a 
      * GitLabUserDetails object.
@@ -64,30 +74,93 @@ public abstract class GitLabAbstactACL extends ACL {
     protected boolean isLoggedIn(Authentication auth) {
         return auth.isAuthenticated() && auth.getPrincipal() instanceof GitLabUserDetails;
     }
-    
+
     /**
-     * Checks if the given role has the given permission.
+     * Checks if the given identity has the given permission.
      * 
-     * @param role       the role
+     * @param identity   the identity
      * @param permission the permission
-     * @return true if the role has permission
+     * @return true if permission is granted
      */
-    public boolean isPermissionSet(String role, Permission permission) {
-        if(role != null && permission != null && grantedPermissions.containsKey(role)) {
-            return grantedPermissions.get(role).contains(permission);
+    public boolean isPermissionSet(GitLabPermissionIdentity identity, Permission permission) {
+        return grantedPermissions.isPermissionSet(identity, permission);
+    }
+
+    /**
+     * Checks if the permission is granted for the identity type Jenkins.
+     * Excluding access level for anonymous.
+     * 
+     * @param user       the user
+     * @param permission the permission
+     * @return true if permission is granted
+     */
+    private boolean isPermissionSetJenkins(GitLabUserDetails user, Permission permission) {
+        if (isAdmin(user)) {
+            if (isPermissionSet(GitLabPermissionIdentity.JENKINS_ADMIN, permission)) {
+                return true;
+            }
+        }
+        
+        if (isPermissionSet(GitLabPermissionIdentity.JENKINS_LOGGED_IN, permission)) {
+            return true;
         }
         return false;
     }
     
     /**
-     * Returns a map with the given permissions to the different roles.
+     * Checks if the permission is granted for the user with the given username 
+     * within the identity type User.
      * 
-     * Roles are represented as a String object, which is the key to this map.
-     * The value of each key is a list of the permissions granted to the specific role.
-     * 
-     * @return a map with the granted permissions
+     * @param username   the username
+     * @param permission the permission
+     * @return true if permission is granted
      */
-    public Map<String, List<Permission>> getGrantedPermissions() {
-        return Collections.unmodifiableMap(grantedPermissions);
+    private boolean isPermissionSetUser(String username, Permission permission) {
+        return isPermissionSet(GitLabPermissionIdentity.user(username), permission);
+    }
+    
+    /**
+     * Checks if the permission is granted for the user with the given username
+     * within the identity type Group.
+     * 
+     * @param username   the username
+     * @param permission the permission
+     * @return true if permission is granted
+     */
+    private boolean isPermissionSetGroup(String username, Permission permission) {
+        //TODO: Have to check against all groups added
+        return false;
+    }
+    
+    /**
+     * Checks if GitLabIdentity Anonymous has the given permission.
+     * 
+     * @param permission the permission
+     * @return true if permission is granted
+     */
+    protected boolean isPermissionSetAnon(Permission permission) {
+        return isPermissionSet(GitLabPermissionIdentity.JENKINS_ANONYMOUS, permission);
+    }
+    
+    /**
+     * Checks if the given permission is set for the given user.
+     * 
+     * @param user       the user
+     * @param permission the permission
+     * @return true if permission is granted
+     */
+    protected boolean isPermissionSetStandard(GitLabUserDetails user, Permission permission) {
+        if (isPermissionSetJenkins(user, permission)) {
+            return true;
+        }
+        
+        if (isPermissionSetUser(user.getUsername(), permission)) {
+            return true;
+        }
+        
+        if (isPermissionSetGroup(user.getUsername(), permission)) {
+            return true;
+        }
+        return false;
     }
 }
