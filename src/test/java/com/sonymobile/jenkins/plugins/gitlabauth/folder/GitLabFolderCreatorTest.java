@@ -27,8 +27,8 @@ package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
+import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
 import com.sonymobile.jenkins.plugins.gitlabauth.exceptions.ItemNameCollisionException;
-import hudson.model.FreeStyleProject;
 import hudson.model.TopLevelItem;
 import hudson.model.TopLevelItemDescriptor;
 import jenkins.model.ModifiableTopLevelItemGroup;
@@ -37,16 +37,25 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabModelDataCreator.createGroupInfo;
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockTopLevelItemCreator.createMockFolder;
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockTopLevelItemCreator.createMockFreeStyleProject;
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockTopLevelItemCreator.createMockTopLevelItem;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataCreators.mockFolderAuthorization;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataCreators.mockGroupInfo;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockFolderBuilder.folder;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockFolderBuilder.mockFolder;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockFreeStyleProjectBuilder.freeStyleProject;
+import static org.apache.commons.lang.StringUtils.EMPTY;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -59,89 +68,161 @@ public class GitLabFolderCreatorTest {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    /** A GitLab folder. */
-    private final Folder folder = createMockFolder("foldername");
-
-    /** A item. */
-    private final TopLevelItem item = createMockFreeStyleProject("foldername");
+    /** The descriptor for a Folder item. */
+    private static final TopLevelItemDescriptor folderDescriptor = new Folder.DescriptorImpl();
 
     /** A GitLab group. */
-    private final GitLabGroupInfo group = createGroupInfo(1, "Folder Name", "foldername");
+    private static final GitLabGroupInfo group = mockGroupInfo(1, "Folder Name", "foldername");
 
-    /** The descriptor for a Folder item. */
-    private final TopLevelItemDescriptor folderDescriptor = new Folder.DescriptorImpl();
+    /** A GitLab folder. */
+    private Folder gitLabFolder;
+
+    /** A miscellaneous folder. */
+    private Folder folder;
+
+    /** A miscellaneous top level item. */
+    private TopLevelItem item;
+
+    /** The map of existing folders (as returned from {@link GitLabFolderCreator#getExistingGitLabGroupFolders()}). */
+    Map<Integer, Folder> existingFolders;
 
     /** The folder creator. */
     private GitLabFolderCreator folderCreator;
 
     /** A mock item group to create folders in. */
-    private ModifiableTopLevelItemGroup mockItemGroup;
+    private ModifiableTopLevelItemGroup itemGroup;
+
+    /** Items in the mock item group. */
+    private List<TopLevelItem> items;
 
     /**
      * Prepare the folder creator for testing.
      */
     @Before
     public void setUp() {
-        // create mock for the item group
-        mockItemGroup = createMock(ModifiableTopLevelItemGroup.class);
+        // clear items list
+        items = new LinkedList<TopLevelItem>();
+        // clear map with existing GitLab folders
+        existingFolders = new HashMap<Integer, Folder>();
 
-        // create the test target using the mock item group
-        folderCreator = new GitLabFolderCreator(mockItemGroup, folderDescriptor);
+        // create mock items
+        gitLabFolder = mockFolder()
+                .name("foldername")
+                .addProperty(mockFolderAuthorization(/* groupId */ 1))
+                .build();
+
+        folder = folder("foldername");
+
+        item = freeStyleProject("foldername");
+
+        // mock itemGroup#getGetItems() returning the items list
+        itemGroup = createMock(ModifiableTopLevelItemGroup.class);
+        expect(itemGroup.getItems()).andReturn(items).anyTimes();
+
+        folderCreator = new GitLabFolderCreator(itemGroup, folderDescriptor);
     }
 
     /**
      * Tests creating a folder when the folder isn't already present in the item group.
      */
     @Test
-    public void whenNotPresent() throws Exception {
-        // mock no already existing item with the same name
-        expect(mockItemGroup.getItem("foldername")).andReturn(null).anyTimes();
-        expect(mockItemGroup.createProject(folderDescriptor, "foldername", true)).
+    public void createWhenNotPresent() throws Exception {
+        expect(itemGroup.createProject(folderDescriptor, "foldername", true)).
                 andReturn(folder);
-        replay(mockItemGroup);
+        replay(itemGroup);
 
-        // should create a new group
-        Folder returnedFolder = folderCreator.createOrGetGitLabGroup(group);
+        Folder returnedFolder = folderCreator.createOrGetGitLabGroupFolder(group, existingFolders);
 
-        assertThat("Name should be set to the group path", returnedFolder.getName(), is("foldername"));
+        // verify that itemGroup#createProject was called
+        verify(itemGroup);
 
-        verify(mockItemGroup);
+        // get property for the GitLab group
+        GitLabFolderAuthorization folderProperty = returnedFolder.getProperties().get(GitLabFolderAuthorization.class);
+
+        assertThat("name not set correctly", returnedFolder.getName(), is("foldername"));
+        assertThat("folder property not set", folderProperty, is(notNullValue()));
+        assertThat("group ID not set correctly", folderProperty.getGroupId(), is(1));
     }
 
     /**
      * Tests creating a folder when the folder already is present in the item group.
      */
     @Test
-    public void whenAlreadyPresent() throws Exception {
-        // mock an already existing folder with the same name
-        Folder folder = createMockFolder("foldername");
+    public void createWhenAlreadyPresent() throws Exception {
+        existingFolders.put(/* groupId */ 1, gitLabFolder);
 
-        expect(mockItemGroup.getItem("foldername")).
-                andReturn(folder).anyTimes();
-        replay(mockItemGroup);
+        replay(itemGroup);
 
-        // should return existing group
-        Folder returnedFolder = folderCreator.createOrGetGitLabGroup(group);
+        Folder returnedFolder = folderCreator.createOrGetGitLabGroupFolder(group, existingFolders);
 
-        assertThat("Existing folder should be returned", returnedFolder, is(sameInstance(folder)));
+        // verify that itemGroup#createProject wasn't called
+        verify(itemGroup);
 
-        verify(mockItemGroup);
+        assertThat("not returning existing folder", returnedFolder, is(sameInstance(gitLabFolder)));
     }
 
     /**
      * Tests creating a folder when the folder name collides with an item present in the item group.
      */
     @Test
-    public void whenNameCollides() throws Exception {
-        // mock an already existing item with the same name
-        expect(mockItemGroup.getItem("foldername")).
-                andReturn(item).anyTimes();
-        replay(mockItemGroup);
+    public void createWhenNameCollides() throws Exception {
+        expect(itemGroup.createProject(folderDescriptor, "foldername", true)).
+                andThrow(new IllegalArgumentException(EMPTY));
+        replay(itemGroup);
 
         // should throw exception
         thrown.expect(ItemNameCollisionException.class);
-        folderCreator.createOrGetGitLabGroup(group);
+        folderCreator.createOrGetGitLabGroupFolder(group, existingFolders);
 
-        verify(mockItemGroup);
+        // verify that itemGroup#createProject wasn't called
+        verify(itemGroup);
+    }
+
+    /**
+     * Tests getting the existing GitLab folders from an item group with a single GitLab folder.
+     */
+    @Test
+    public void getWithGitLabFolder() {
+        // item group has one existing GitLab folder
+        items.add(gitLabFolder);
+        replay(itemGroup);
+
+        Map<Integer, Folder> existingFolders = folderCreator.getExistingGitLabGroupFolders();
+
+        verify(itemGroup);
+
+        assertThat("existing GitLab folder not matched", existingFolders, hasEntry(1, gitLabFolder));
+    }
+
+    /**
+     * Tests getting the existing GitLab folders from an item group with a single folder.
+     */
+    @Test
+    public void getWithFolder() {
+        // item group has one existing folder
+        items.add(item);
+        replay(itemGroup);
+
+        Map<Integer, Folder> existingFolders = folderCreator.getExistingGitLabGroupFolders();
+
+        verify(itemGroup);
+
+        assertThat("matched normal folder as GitLab folder", existingFolders.isEmpty(), is(true));
+    }
+
+    /**
+     * Tests getting the existing GitLab folders from an item group with a single item.
+     */
+    @Test
+    public void getWithItem() {
+        // item group has one existing item
+        items.add(item);
+        replay(itemGroup);
+
+        Map<Integer, Folder> existingFolders = folderCreator.getExistingGitLabGroupFolders();
+
+        verify(itemGroup);
+
+        assertThat("matched item as GitLab folder", existingFolders.isEmpty(), is(true));
     }
 }

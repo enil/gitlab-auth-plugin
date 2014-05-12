@@ -25,58 +25,48 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth.helpers;
 
-import com.cloudbees.hudson.plugins.folder.Folder;
-import hudson.model.FreeStyleProject;
-import hudson.model.TopLevelItem;
+import com.sonymobile.gitlab.model.GitLabGroupInfo;
+import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
 
-import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 
 /**
- * A helper class for creating mock instances of {@link TopLevelItem} objects for tests.
+ * Helper methods for creating mock data for tests.
  *
  * @author Emil Nilsson
  */
-public class MockTopLevelItemCreator {
-    private MockTopLevelItemCreator() { /* empty */ }
+public class MockDataCreators {
+    private MockDataCreators() { /* empty */}
 
     /**
-     * Creates a mock {@link Folder} object.
+     * Mocks a folder authorization property object.
      *
-     * @param name the name of the folder
-     * @return a mock folder
+     * @param groupId the group ID for the GitLab group
+     * @return a folder property object
      */
-    public static Folder createMockFolder(String name) {
-        return createMockTopLevelItem(Folder.class, name);
+    public static GitLabFolderAuthorization mockFolderAuthorization(int groupId) {
+        GitLabFolderAuthorization folderAuthorization = new GitLabFolderAuthorization(groupId);
+
+        return folderAuthorization;
     }
 
     /**
-     * Creates a mock {@link FreeStyleProject} object.
+     * Mocks a GitLab group info object.
      *
-     * @param name the name of the project
-     * @return a mock project
+     * @param groupId the group ID
+     * @param name    the group name
+     * @param path    the path for the group
+     * @return a group info object
      */
-    public static FreeStyleProject createMockFreeStyleProject(String name) {
-        return createMockTopLevelItem(FreeStyleProject.class, name);
-    }
+    public static GitLabGroupInfo mockGroupInfo(int groupId, String name, String path) {
+        GitLabGroupInfo groupInfo = createNiceMock(GitLabGroupInfo.class);
+        expect(groupInfo.getId()).andReturn(groupId).anyTimes();
+        expect(groupInfo.getName()).andReturn(name).anyTimes();
+        expect(groupInfo.getPath()).andReturn(path).anyTimes();
+        replay(groupInfo);
 
-    /**
-     * Creates a mock object for a top level item.
-     *
-     * The item is capable of return its own name but not much more.
-     *
-     * @param type the class for the item
-     * @param name the name of the item
-     * @param <T>  the type
-     * @return a mock top level item
-     */
-    public static <T extends TopLevelItem> T createMockTopLevelItem(Class<T> type, String name) {
-        T item = createMock(type);
-        // it must be able to return its name
-        expect(item.getName()).andReturn(name).anyTimes();
-        replay(item);
-
-        return item;
+        return groupInfo;
     }
 }

@@ -10,12 +10,12 @@ import java.util.List;
 import static com.sonymobile.gitlab.helpers.JsonFileLoader.jsonFile;
 
 /**
- * Convenient helper methods for loading JSON data for GitLab model classes from the test resources.
+ * Helper methods for loading mock data from JSON files for tests.
  *
  * @author Emil Nilsson
  */
-public class GitLabMockDataLoaders {
-    public GitLabMockDataLoaders() { /* do nothing */ }
+public class MockDataLoaders {
+    public MockDataLoaders() { /* empty */ }
 
     /**
      * Loads a JSON file with a user.

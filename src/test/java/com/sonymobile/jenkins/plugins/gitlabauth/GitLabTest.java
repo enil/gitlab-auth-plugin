@@ -45,10 +45,10 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabMockDataLoaders.loadAdminUser;
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabMockDataLoaders.loadGroupMembers;
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabMockDataLoaders.loadGroups;
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabMockDataLoaders.loadUser;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataLoaders.loadAdminUser;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataLoaders.loadGroupMembers;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataLoaders.loadGroups;
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataLoaders.loadUser;
 import static org.apache.commons.lang.StringUtils.EMPTY;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -293,6 +293,22 @@ public class GitLabTest {
 
             verify(mockApiClient);
         }
+    }
+
+
+    @Test
+    public void getGroup() throws Exception {
+        expect(mockApiClient.getGroups()).andReturn(loadGroups());
+        replay(mockApiClient);
+
+        GitLabGroupInfo group = GitLab.getGroup(1);
+
+        assertThat("Group should exist", group, is(notNullValue()));
+        assertThat(group.getId(), is(1));
+
+        assertThat("Group should not exist", GitLab.getGroup(1000), is(nullValue()));
+
+        verify(mockApiClient);
     }
 
     @Test

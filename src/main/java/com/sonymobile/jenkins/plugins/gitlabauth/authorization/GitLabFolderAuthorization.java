@@ -25,56 +25,82 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth.authorization;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import jenkins.model.Jenkins;
-import net.sf.json.JSONObject;
-
-import org.kohsuke.stapler.StaplerRequest;
-
+import com.cloudbees.hudson.plugins.folder.Folder;
 import com.cloudbees.hudson.plugins.folder.FolderProperty;
 import com.cloudbees.hudson.plugins.folder.FolderPropertyDescriptor;
-import com.cloudbees.hudson.plugins.folder.Folder;
+import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
+import com.sonymobile.gitlab.model.GitLabGroupInfo;
+import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevel;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabFolderACL;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabGrantedPermissions;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity.IdentityType;
-
 import hudson.Extension;
+import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
+import jenkins.model.Jenkins;
+import net.sf.json.JSONObject;
+import org.kohsuke.stapler.StaplerRequest;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.logging.Logger;
 
 /**
  * Property used for configuring access rights for folders.
- * 
+ *
  * @author Andreas Alanko
+ * @author Emil Nilsson
  */
 public class GitLabFolderAuthorization extends FolderProperty<Folder> {
-    private GitLabFolderACL folderACL;
+    /** The per-folder ACL. */
+    private final GitLabFolderACL folderACL;
+
+    /** The group ID of the GitLab group for the folder. */
     private int groupId;
-    
-    public GitLabFolderAuthorization(GitLabGrantedPermissions grantedPermissions) {
-        this.folderACL = new GitLabFolderACL(grantedPermissions);
+
+    /** The logger for the class. */
+    private transient final Logger LOGGER = Logger.getLogger(GitLabFolderAuthorization.class.getName());
+
+    /**
+     * Creates a GitLab folder with a group ID.
+     *
+     * @param groupId
+     */
+    public GitLabFolderAuthorization(int groupId) {
+        // no permissions set
+        this(new GitLabFolderACL(new GitLabGrantedPermissions()));
+
+        this.groupId = groupId;
     }
-    
+
+    /**
+     * Creates a GitLab folder property with a folder ACL.
+     *
+     * @param acl the folder ACL
+     */
+    private GitLabFolderAuthorization(GitLabFolderACL acl) {
+        this.folderACL = acl;
+    }
+
     /**
      * Gets the ACL belonging to this folder.
-     * 
+     *
      * @return an ACL
      */
     public ACL getACL() {
         return folderACL;
     }
-    
+
     /**
      * Gets the group id for this folder.
-     * 
+     *
      * @return the groupId
      */
     public int getGroupId() {
@@ -82,55 +108,80 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
     }
 
     /**
-     * Sets the group id of this folder.
-     * 
-     * @param groupId the groupId to set
-     */
-    public void setGroupId(int groupId) {
-        this.groupId = groupId;
-        folderACL.setGroupId(groupId);
-    }
-
-    /**
      * Gets the group path for this folder.
-     * 
+     *
      * @return the groupPath
      */
     public String getGroupPath() {
-        //TODO: Should get group info from GitLab instance.
-        return "";
+        try {
+            return getGroupInfo().getPath();
+        } catch (GitLabApiException e) {
+            return "<could not fetch group information>";
+        }
     }
 
     /**
      * Gets the group name for this folder.
-     * 
+     *
      * @return the groupName
      */
     public String getGroupName() {
-        //TODO: Should get group info from GitLab instance.
-        return "";
+        try {
+            return getGroupInfo().getName();
+        } catch (GitLabApiException e) {
+            return "<could not fetch group information>";
+        }
     }
 
     /**
      * Checks if the given GitLab identity has the given permission.
-     * 
+     *
      * Mainly used to check if a checkbox should be checked or not on the config page.
-     * 
+     *
      * @param identity   the identity
      * @param permission the permission
      * @return true if the given identity has the given permission
      */
     public boolean isPermissionSet(GitLabPermissionIdentity identity, Permission permission) {
-        return folderACL.isPermissionSet(identity, permission);
+        return folderACL != null && folderACL.isPermissionSet(identity, permission);
     }
-    
+
     public List<GitLabPermissionIdentity> getFolderPermissionIdentities() {
         return folderACL.getPermissionIdentities(true);
     }
-    
+
+    @Override
+    public GitLabFolderAuthorization reconfigure(StaplerRequest request, JSONObject formData)
+            throws Descriptor.FormException {
+        // create a new instance from the form data
+        GitLabFolderAuthorization newInstance = (GitLabFolderAuthorization)super.reconfigure(request, formData);
+        if (newInstance != null) {
+            // preserve group ID
+            newInstance.groupId = groupId;
+        }
+
+        return newInstance;
+    }
+
+    /**
+     * Gets group information for the GitLab group from the API.
+     *
+     * Logger will warn if fetching the group information failed.
+     *
+     * @return a group info object
+     * @throws GitLabApiException if fetching the group failed
+     */
+    private GitLabGroupInfo getGroupInfo() throws GitLabApiException {
+        try {
+            return GitLab.getGroup(groupId);
+        } catch (GitLabApiException e) {
+            LOGGER.warning("Failed for fetch group with ID " + groupId);
+            throw e;
+        }
+    }
+
     @Extension
     public static class DescriptorImpl extends FolderPropertyDescriptor {
-        
         @Override
         public boolean isApplicable(Class<? extends Folder> containerType) {
             try {
@@ -139,70 +190,79 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
                 return false;
             }
         }
-        
+
         @Override
         public String getDisplayName() {
-            return "GitLab Folder Authorization";
+            return "GitLab Folder";
         }
-        
+
         @Override
         public GitLabFolderAuthorization newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+            // read permissions from the table in the form
+            return new GitLabFolderAuthorization(aclFromPermissionTable(formData.getJSONObject("permissionTable")));
+        }
+
+        /**
+         * Creates a folder ACL from form data from a table.
+         *
+         * @param tableData data from the table
+         * @return a folder ACL
+         */
+        private GitLabFolderACL aclFromPermissionTable(Map<String, Object> tableData) {
             GitLabGrantedPermissions grantedPermissions = new GitLabGrantedPermissions();
-            
-            Map<String, Object> tableData = formData.getJSONObject("permissionTable");
-            
+
             for (Entry<String, Object> identityPermission : tableData.entrySet()) {
                 GitLabPermissionIdentity identity = null;
                 String[] identityValue = identityPermission.getKey().split(":");
-                
+
                 if (identityValue.length == 2) {
                     IdentityType type = IdentityType.valueOf(identityValue[0]);
                     String id = identityValue[1];
-                                        
+
                     switch (type) {
-                    case GITLAB:
-                        identity = GitLabPermissionIdentity.getGitLabIdentityFromAccessLevel(
-                                GitLabAccessLevel.getAccessLevelWithName(id));
-                        break;
-                    case JENKINS:
-                        identity = GitLabPermissionIdentity.getJenkinsIdentityFromAccessLevel(
-                                JenkinsAccessLevel.getAccessLevelWithName(id));
-                        break;
-                    case GROUP:
-                        identity = GitLabPermissionIdentity.group(id);
-                        break;
-                    case USER:
-                        identity = GitLabPermissionIdentity.user(id);
-                        break;
+                        case GITLAB:
+                            identity = GitLabPermissionIdentity.getGitLabIdentityFromAccessLevel(
+                                    GitLabAccessLevel.getAccessLevelWithName(id));
+                            break;
+                        case JENKINS:
+                            identity = GitLabPermissionIdentity.getJenkinsIdentityFromAccessLevel(
+                                    JenkinsAccessLevel.getAccessLevelWithName(id));
+                            break;
+                        case GROUP:
+                            identity = GitLabPermissionIdentity.group(id);
+                            break;
+                        case USER:
+                            identity = GitLabPermissionIdentity.user(id);
+                            break;
                     }
                 }
-                
-                Map<String, Object> value = (JSONObject) identityPermission.getValue();
-                
+
+                Map<String, Object> value = (JSONObject)identityPermission.getValue();
+
                 for (Entry<String, Object> valueSet : value.entrySet()) {
-                    if ((Boolean) valueSet.getValue() && identity != null) {
+                    if ((Boolean)valueSet.getValue() && identity != null) {
                         grantedPermissions.addPermission(identity, Permission.fromId(valueSet.getKey()));
                     }
                 }
             }
-            return new GitLabFolderAuthorization(grantedPermissions);
+
+            return new GitLabFolderACL(grantedPermissions);
         }
-        
+
         /**
          * Returns the Permission Group belonging to the Item class.
-         * 
+         *
          * @return a permission group
          */
         public PermissionGroup getItemPermissionGroup() {
             return PermissionGroup.get(Item.class);
         }
-        
+
         /**
          * Gets the static permission identities, including the GitLab ones.
-         * 
-         * Will be used by the groovy view file when the folder property object
-         * hasn't been created yet.
-         * 
+         *
+         * Will be used by the groovy view file when the folder property object hasn't been created yet.
+         *
          * @return a list of permission identities
          */
         public List<GitLabPermissionIdentity> getStaticPermissionIdentities() {
