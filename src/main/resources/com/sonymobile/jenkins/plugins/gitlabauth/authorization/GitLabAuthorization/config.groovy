@@ -13,7 +13,7 @@ f.block() {
             td("class": "pane-header", rowspan: "2") {
                 text("Permission")
                 br()
-                text("Role")
+                text("Identity")
             }
 
             for (pg in permissionGroups.keySet()) {
@@ -39,16 +39,16 @@ f.block() {
             }
         }
 
-        for (role in descriptor.allRoles) {
-            tr(name: role) {
+        for (identity in descriptor.permissionIdentities) {
+            tr(name: identity) {
                 td {
-                    text(role)
+                    text(identity.displayName)
                 }
 
                 for (pg in permissionGroups.keySet()) {
                     for (p in permissionGroups.get(pg)) {
                         td {
-                            f.checkbox(name: "["+p.id+"]", checked: (instance != null) ? instance.isPermissionSet(role, p) : false)
+                            f.checkbox(name: "["+p.id+"]", checked: (instance != null) ? instance.isPermissionSet(identity, p) : false)
                         }
                     }
                 }
@@ -57,11 +57,11 @@ f.block() {
     }
 
     f.entry(title: "Admin usernames", description: "GitLab usernames who will be granted admin rights. Should be separated by a comma.") {
-        f.checkbox(field: "useGitLabAdmins", title: "Check if all GitLab admins should also be Jenkins admins.")
+        f.checkbox(field: "useGitLabAdmins", title: "Make all GitLab admins Jenkins admins.")
         f.textbox(field: "adminUsernames")
     }
     
-    f.entry(title: "Admin groups", description: "GitLab group path names who will be granted admin rights. Should be separated by a comma.") {
+    f.entry(title: "Admin groups", description: "GitLab groups who will be granted admin rights. Should be separated by a comma.") {
         f.textbox(field: "adminGroups")
     }
 }

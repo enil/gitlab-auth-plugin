@@ -26,22 +26,26 @@
 package com.sonymobile.jenkins.plugins.gitlabauth.authorization;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.StaplerRequest;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
-import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevels;
+import com.sonymobile.gitlab.model.GitLabAccessLevel;
+import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevel;
+import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabAbstactACL;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabGlobalACL;
+import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabGrantedPermissions;
+import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity;
+import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity.IdentityType;
 
 import hudson.Extension;
 import hudson.model.AbstractItem;
@@ -69,7 +73,8 @@ public class GitLabAuthorization extends AuthorizationStrategy {
      * @param useGitLabAdmins    if GitLab admins should be Jenkins admins
      * @param grantedPermissions map of all Jenkins roles and their respective granted permissions
      */
-    public GitLabAuthorization(String adminUsernames, String adminGroups, boolean useGitLabAdmins, Map<String, List<Permission>> grantedPermissions) {
+    public GitLabAuthorization(String adminUsernames, String adminGroups, boolean useGitLabAdmins,
+            GitLabGrantedPermissions grantedPermissions) {
         rootACL = new GitLabGlobalACL(adminUsernames, adminGroups, useGitLabAdmins, grantedPermissions);
     }
     
@@ -134,6 +139,12 @@ public class GitLabAuthorization extends AuthorizationStrategy {
         return getRootACL();
     }
     
+    /**
+     * Gets the ACL for the given folder.
+     * 
+     * @param folder the folder
+     * @return an ACL
+     */
     public ACL getACL(Folder folder) {
         GitLabFolderAuthorization folderAuth = folder.getProperties().get(GitLabFolderAuthorization.class);
         
@@ -145,7 +156,9 @@ public class GitLabAuthorization extends AuthorizationStrategy {
     
     /**
      * Tries to get the ACL of a folder.
+     * Otherwise it will return the root ACL of the Authorization Strategy.
      * 
+     * @param item the item
      * @return an ACL
      */
     @Override
@@ -157,19 +170,16 @@ public class GitLabAuthorization extends AuthorizationStrategy {
     }
     
     /**
-     * Checks if the given GitLab role has the given permission.
+     * Checks if the given GitLab identity has the given permission.
      * 
      * Mainly used to check if a checkbox should be checked or not on the config page.
      * 
-     * @param role       the role name
+     * @param identity   the identity
      * @param permission the permission
-     * @return true if the given role has the given permission
+     * @return true if the given identity has the given permission
      */
-    public boolean isPermissionSet(String role, Permission permission) {
-        if(rootACL != null && role != null && permission != null) {
-            return rootACL.isPermissionSet(role, permission);
-        }
-        return false;
+    public boolean isPermissionSet(GitLabPermissionIdentity identity, Permission permission) {
+        return rootACL.isPermissionSet(identity, permission);
     }
 
     @Extension
@@ -185,23 +195,42 @@ public class GitLabAuthorization extends AuthorizationStrategy {
             String adminUsernames = formData.getString("adminUsernames");
             String adminGroups = formData.getString("adminGroups");
             boolean useGitLabAdmins = formData.getBoolean("useGitLabAdmins");
-
-            HashMap<String, List<Permission>> grantedPermissions = new HashMap<String, List<Permission>>();
+            
+            GitLabGrantedPermissions grantedPermissions = new GitLabGrantedPermissions();
             
             Map<String, Object> tableData = formData.getJSONObject("permissionTable");
             
-            for(Entry<String, Object> rolePermission : tableData.entrySet()) {
-                String role = rolePermission.getKey();
+            for (Entry<String, Object> identityPermission : tableData.entrySet()) {
+                GitLabPermissionIdentity identity = null;
+                String[] identityValue = identityPermission.getKey().split(":");
                 
-                Map<String, Object> value = (JSONObject) rolePermission.getValue();
+                if (identityValue.length == 2) {
+                    IdentityType type = IdentityType.valueOf(identityValue[0]);
+                    String id = identityValue[1];
+                                        
+                    switch (type) {
+                    case GITLAB:
+                        identity = GitLabPermissionIdentity.getGitLabIdentityFromAccessLevel(
+                                GitLabAccessLevel.getAccessLevelWithName(id));
+                        break;
+                    case JENKINS:
+                        identity = GitLabPermissionIdentity.getJenkinsIdentityFromAccessLevel(
+                                JenkinsAccessLevel.getAccessLevelWithName(id));
+                        break;
+                    case GROUP:
+                        identity = GitLabPermissionIdentity.group(id);
+                        break;
+                    case USER:
+                        identity = GitLabPermissionIdentity.user(id);
+                        break;
+                    }
+                }
+                
+                Map<String, Object> value = (JSONObject) identityPermission.getValue();
                 
                 for (Entry<String, Object> valueSet : value.entrySet()) {
-                    if ((Boolean) valueSet.getValue()) {
-                        if (!grantedPermissions.containsKey(role)) {
-                            grantedPermissions.put(role, new ArrayList<Permission>());
-                        }
-                        
-                        grantedPermissions.get(role).add(Permission.fromId(valueSet.getKey()));
+                    if ((Boolean) valueSet.getValue() && identity != null) {
+                        grantedPermissions.addPermission(identity, Permission.fromId(valueSet.getKey()));
                     }
                 }
             }
@@ -234,12 +263,17 @@ public class GitLabAuthorization extends AuthorizationStrategy {
         }
         
         /**
-         * Returns a list with all Jenkins roles.
+         * Gets a list of all permission identites configured to be used globally by Jenkins.
          * 
-         * @return a list with all roles
+         * @return a list of permission identities
          */
-        public List<String> getAllRoles() {
-            return new ArrayList<String>(Arrays.asList(JenkinsAccessLevels.all));
+        public List<GitLabPermissionIdentity> getPermissionIdentities() {
+            AuthorizationStrategy strategy = Jenkins.getInstance().getAuthorizationStrategy();
+            if (strategy instanceof GitLabAuthorization) {
+                GitLabAbstactACL acl = (GitLabAbstactACL) strategy.getRootACL();
+                return acl.getPermissionIdentities(false);
+            }
+            return GitLabPermissionIdentity.getGlobalStaticPermissionIdentities(false);
         }
     }
 }

@@ -26,25 +26,16 @@
 package com.sonymobile.jenkins.plugins.gitlabauth.acl;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Logger;
 
 import org.acegisecurity.Authentication;
 import org.apache.commons.lang.StringUtils;
 
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
-import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.gitlab.model.GitLabGroupMemberInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
-import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevels;
 import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
-import com.thoughtworks.xstream.converters.Converter;
-import com.thoughtworks.xstream.converters.MarshallingContext;
-import com.thoughtworks.xstream.converters.UnmarshallingContext;
-import com.thoughtworks.xstream.io.HierarchicalStreamReader;
-import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 
 import hudson.security.ACL;
 import hudson.security.Permission;
@@ -65,7 +56,7 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
     private boolean useGitLabAdmins;
     
     /** Logger for this class. */
-    private final Logger LOGGER = Logger.getLogger(GitLabGlobalACL.class.getName());
+    private final transient Logger LOGGER = Logger.getLogger(GitLabGlobalACL.class.getName());
     
     /**
      * Creates a global ACL to use for GitLabAuthorization.
@@ -77,15 +68,23 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
      * @param adminUsernames     the admin usernames
      * @param adminGroups        the admin groups
      * @param useGitLabAdmins    if GitLab admins should also be Jenkins admins
-     * @param grantedPermissions map of roles and their respective granted permissions
+     * @param grantedPermissions the granted permissions
      */
-    public GitLabGlobalACL(String adminUsernames, String adminGroups, boolean useGitLabAdmins, Map<String, List<Permission>> grantedPermissions) {
+    public GitLabGlobalACL(String adminUsernames, String adminGroups, boolean useGitLabAdmins, 
+            GitLabGrantedPermissions grantedPermissions) {
         super(grantedPermissions);
         this.useGitLabAdmins = useGitLabAdmins;
         this.adminUsernames = splitAdminIdentitiesIntoList(adminUsernames);
         this.adminGroups = splitAdminIdentitiesIntoList(adminGroups);
     }
     
+    /**
+     * Splits a string of identities separated by commas and adds them to
+     * a List. 
+     * 
+     * @param adminIdentities the string
+     * @return a list
+     */
     private List<String> splitAdminIdentitiesIntoList(String adminIdentities) {
         List<String> list = new ArrayList<String>();
         
@@ -120,17 +119,11 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
         if(isLoggedIn(auth)) {
             GitLabUserDetails user = (GitLabUserDetails) auth.getPrincipal();
             
-            if(isAdmin(user)) {
-                if (isPermissionSet(JenkinsAccessLevels.ADMIN, permission)) {
-                    return true;
-                }
-            }
-            
-            if (isPermissionSet(JenkinsAccessLevels.LOGGED_IN, permission)) {
+            if (isPermissionSetStandard(user, permission)) {
                 return true;
             }
         }
-        return isPermissionSet(JenkinsAccessLevels.ANONYMOUS, permission);
+        return isPermissionSetAnon(permission);
     }
     
     /**
@@ -186,100 +179,5 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
      */
     public boolean getUseGitLabAdmins() {
         return useGitLabAdmins;
-    }
-
-    /**
-     * Used to store the permission id instead of the reference to the 
-     * permission objects to the config.xml file.
-     */
-    public static class ConverterImpl implements Converter {
-    	private static final String XML_FIELD_PERMISSION = "permission";
-    	private static final String XML_FIELD_ADMINUSERNAMES = "adminUsername";
-    	private static final String XML_FIELD_ADMINGROUPS = "adminGroup";
-    	private static final String XML_FIELD_USEGITLABADMINS = "useGitLabAdmins";
-    	
-    	/** Logger for this class. */
-        private final Logger LOGGER = Logger.getLogger(GitLabGlobalACL.class.getName());
-    	
-        public boolean canConvert(Class clazz) {
-            return clazz.equals(GitLabGlobalACL.class);
-        }
-
-        /**
-         * Used to write the internal data of the GitLabGlobalACL object 
-         * to config.xml file.
-         */
-        public void marshal(Object value, HierarchicalStreamWriter writer, MarshallingContext context) {
-            GitLabGlobalACL acl = (GitLabGlobalACL) value;
-            
-            writer.startNode(XML_FIELD_USEGITLABADMINS);
-            writer.setValue(String.valueOf(acl.useGitLabAdmins));
-            writer.endNode();
-            
-            for (int i = 0; i < acl.adminUsernames.size(); i++) {
-                writer.startNode(XML_FIELD_ADMINUSERNAMES);
-                writer.setValue(acl.adminUsernames.get(i));
-                writer.endNode();
-            }
-            
-            for (int i = 0; i < acl.adminGroups.size(); i++) {
-                writer.startNode(XML_FIELD_ADMINGROUPS);
-                writer.setValue(acl.adminGroups.get(i));
-                writer.endNode();
-            }
-            
-            for (String role : acl.getGrantedPermissions().keySet()) {
-                List<Permission> permissions = acl.getGrantedPermissions().get(role);
-                
-                for (int i = 0; i < permissions.size(); i++) {
-                    writer.startNode(XML_FIELD_PERMISSION);
-                    writer.setValue(role + ":" + permissions.get(i).getId());
-                    writer.endNode();
-                }
-            }
-        }
-
-        /**
-         * Used to parse data stored in the config.xml file to be used 
-         * in the GitLabGlobalACL object.
-         */
-        public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context) {
-            HashMap<String, List<Permission>> grantedPermissions = new HashMap<String, List<Permission>>();
-            ArrayList<String> adminUsernames = new ArrayList<String>();
-            ArrayList<String> adminGroups = new ArrayList<String>();
-            boolean useGitLabAdmins = false;
-            
-            while (reader.hasMoreChildren()) {
-                reader.moveDown();
-                
-                if (XML_FIELD_PERMISSION.equals(reader.getNodeName())) {
-                    String[] value = reader.getValue().split(":");
-                    
-                    if (value.length == 2) {
-                        if (!grantedPermissions.containsKey(value[0])) {
-                            grantedPermissions.put(value[0], new ArrayList<Permission>());
-                        }
-                        Permission p = Permission.fromId(value[1]);
-                        if (p != null) {
-                            grantedPermissions.get(value[0]).add(p);
-                        } else {
-                            LOGGER.warning("Unknown permission id " + value[1]);
-                        }
-                    }
-                } else if (XML_FIELD_USEGITLABADMINS.equals(reader.getNodeName())) {
-                    useGitLabAdmins = Boolean.valueOf(reader.getValue());
-                } else if (XML_FIELD_ADMINUSERNAMES.equals(reader.getNodeName())) {
-                    adminUsernames.add(reader.getValue());
-                } else if (XML_FIELD_ADMINGROUPS.equals(reader.getNodeName())) {
-                    adminGroups.add(reader.getValue());
-                }
-                
-                reader.moveUp();
-            }
-            
-            String adminUsernameString = StringUtils.join(adminUsernames.iterator(), ", ");
-            String adminGroupString = StringUtils.join(adminGroups.iterator(), ", ");
-            return new GitLabGlobalACL(adminUsernameString, adminGroupString, useGitLabAdmins, grantedPermissions);
-        }
     }
 }
