@@ -1,14 +1,33 @@
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
 import static org.junit.Assert.*;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity;
 
 public class GitLabPermissionIdentityTest {
+    private List<GitLabPermissionIdentity> allIdentitiesSorted;
+    
+    @Before
+    public void setUp() {
+        allIdentitiesSorted = new ArrayList<GitLabPermissionIdentity>();
+        allIdentitiesSorted.add(GitLabPermissionIdentity.JENKINS_ADMIN);
+        allIdentitiesSorted.add(GitLabPermissionIdentity.JENKINS_LOGGED_IN);
+        allIdentitiesSorted.add(GitLabPermissionIdentity.JENKINS_ANONYMOUS);
+        
+        allIdentitiesSorted.add(GitLabPermissionIdentity.GITLAB_OWNER);
+        allIdentitiesSorted.add(GitLabPermissionIdentity.GITLAB_MASTER);
+        allIdentitiesSorted.add(GitLabPermissionIdentity.GITLAB_DEVELOPER);
+        allIdentitiesSorted.add(GitLabPermissionIdentity.GITLAB_REPORTER);
+        allIdentitiesSorted.add(GitLabPermissionIdentity.GITLAB_GUEST);
+    }
     
     @Test
     public void testUser() {
@@ -66,13 +85,19 @@ public class GitLabPermissionIdentityTest {
     
     @Test
     public void testCompareTo() {
-        assertEquals(GitLabPermissionIdentity.GITLAB_DEVELOPER.compareTo(GitLabPermissionIdentity.GITLAB_DEVELOPER), 0);
-        assertEquals(GitLabPermissionIdentity.GITLAB_DEVELOPER.compareTo(GitLabPermissionIdentity.GITLAB_GUEST), 1);
-        assertEquals(GitLabPermissionIdentity.GITLAB_MASTER.compareTo(GitLabPermissionIdentity.GITLAB_OWNER), -1);
+        ArrayList<GitLabPermissionIdentity> allIdentitiesShuffled = new ArrayList<GitLabPermissionIdentity>();
+        allIdentitiesShuffled.add(GitLabPermissionIdentity.JENKINS_ANONYMOUS);
+        allIdentitiesShuffled.add(GitLabPermissionIdentity.GITLAB_REPORTER);
+        allIdentitiesShuffled.add(GitLabPermissionIdentity.GITLAB_DEVELOPER);
+        allIdentitiesShuffled.add(GitLabPermissionIdentity.GITLAB_OWNER);
+        allIdentitiesShuffled.add(GitLabPermissionIdentity.JENKINS_ADMIN);
+        allIdentitiesShuffled.add(GitLabPermissionIdentity.GITLAB_GUEST);
+        allIdentitiesShuffled.add(GitLabPermissionIdentity.JENKINS_LOGGED_IN);
+        allIdentitiesShuffled.add(GitLabPermissionIdentity.GITLAB_MASTER);
         
-        assertEquals(GitLabPermissionIdentity.JENKINS_ADMIN.compareTo(GitLabPermissionIdentity.JENKINS_ADMIN), 0);
-        assertEquals(GitLabPermissionIdentity.JENKINS_LOGGED_IN.compareTo(GitLabPermissionIdentity.JENKINS_ANONYMOUS), 1);
-        assertEquals(GitLabPermissionIdentity.JENKINS_ANONYMOUS.compareTo(GitLabPermissionIdentity.JENKINS_ADMIN), -1);
+        Collections.sort(allIdentitiesShuffled);
+        
+        assertEquals(allIdentitiesSorted, allIdentitiesShuffled);
     }
     
     @Test

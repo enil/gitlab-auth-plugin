@@ -120,18 +120,18 @@ public class GitLabPermissionIdentity implements Comparable<GitLabPermissionIden
         int thisValue = type.ordinal();
         int objectValue = object.type.ordinal();
         
-        if (thisValue > objectValue) {
+        if (thisValue < objectValue) {
             return 1;
-        } else if (thisValue < objectValue) {
+        } else if (thisValue > objectValue) {
             return -1;
         } else {
             if (type == IdentityType.GITLAB) {
                 int thisAccessLevel = GitLabAccessLevel.getAccessLevelWithName(id).ordinal();
                 int objectAccessLevel = GitLabAccessLevel.getAccessLevelWithName(object.id).ordinal();
                 
-                if (thisAccessLevel > objectAccessLevel) {
+                if (thisAccessLevel < objectAccessLevel) {
                     return 1;
-                } else if (thisAccessLevel < objectAccessLevel) {
+                } else if (thisAccessLevel > objectAccessLevel) {
                     return -1;
                 } else {
                     return 0;
@@ -140,9 +140,9 @@ public class GitLabPermissionIdentity implements Comparable<GitLabPermissionIden
                 int thisAccessLevel = JenkinsAccessLevel.getAccessLevelWithName(id).ordinal();
                 int objectAccessLevel = JenkinsAccessLevel.getAccessLevelWithName(object.id).ordinal();
                 
-                if (thisAccessLevel > objectAccessLevel) {
+                if (thisAccessLevel < objectAccessLevel) {
                     return 1;
-                } else if (thisAccessLevel < objectAccessLevel) {
+                } else if (thisAccessLevel > objectAccessLevel) {
                     return -1;
                 } else {
                     return 0;
