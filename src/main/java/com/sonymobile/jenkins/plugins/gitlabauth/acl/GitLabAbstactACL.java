@@ -32,6 +32,9 @@ import hudson.security.Permission;
 
 import org.acegisecurity.Authentication;
 
+import com.sonymobile.gitlab.exceptions.GitLabApiException;
+import com.sonymobile.gitlab.model.GitLabGroupMemberInfo;
+import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
 
 /**
@@ -123,12 +126,28 @@ public abstract class GitLabAbstactACL extends ACL {
      * Checks if the permission is granted for the user with the given username
      * within the identity type Group.
      * 
-     * @param username   the username
+     * @param userId     the user id
      * @param permission the permission
      * @return true if permission is granted
      */
-    private boolean isPermissionSetGroup(String username, Permission permission) {
-        //TODO: Have to check against all groups added
+    private boolean isPermissionSetGroup(int userId, Permission permission) {
+        List<GitLabPermissionIdentity> groups = grantedPermissions.getGroupPermissionIdentities();
+        
+        GitLabGroupMemberInfo groupMember;
+        
+        for (GitLabPermissionIdentity group : groups) {
+            try {
+                groupMember = GitLab.getGroupMember(userId, group.id);
+                
+                // Check if user is member of group
+                if(groupMember != null && !groupMember.isBlocked()) {
+                    // Check if the group has the given permission
+                    if (isPermissionSet(group, permission)) {
+                        return true;
+                    }
+                }
+            } catch (GitLabApiException e) {}
+        }
         return false;
     }
     
@@ -158,7 +177,7 @@ public abstract class GitLabAbstactACL extends ACL {
             return true;
         }
         
-        if (isPermissionSetGroup(user.getUsername(), permission)) {
+        if (isPermissionSetGroup(user.getId(), permission)) {
             return true;
         }
         return false;

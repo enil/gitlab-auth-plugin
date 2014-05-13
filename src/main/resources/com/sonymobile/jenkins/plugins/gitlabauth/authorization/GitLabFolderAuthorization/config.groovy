@@ -25,42 +25,41 @@ f.section(title: "GitLab Group") {
 
 f.section(title: "GitLab Folder Authorization") {
     f.block {
-        link rel: "stylesheet", href: rootURL+"/plugin/gitlab-auth/table.css", type: "text/css"
+        link(rel: "stylesheet", href: rootURL+"/plugin/gitlab-auth/table.css", type: "text/css")
+        script(type: "text/javascript", src: rootURL+"/plugin/gitlab-auth/authorization.matrix.js")
 
-        table("class": "center-align global-matrix-authorization-strategy-table", name: "permissionTable") {
+        table("class": "center-align global-matrix-authorization-strategy-table", name: "permissionTable", id: "permissionTable") {
             tr {
                 td("class": "pane-header", rowspan: "2") {
-                    text "Permission"
+                    text("Permission")
                     br()
-                    text "Role"
+                    text("Role")
                 }
                 
                 td("class": "pane-header", colspan: itemPermissionGroup.permissions.size()) {
-                    text itemPermissionGroup.title
+                    text(itemPermissionGroup.title)
                 }
             }
             
             tr {
                 itemPermissionGroup.each { permission ->
                     td {
+                        script(type: "text/javascript") {
+                            text('addItem("' + permission.id + '")')
+                        }
+                        
                         if (permission.enabled) {
-                            text permission.name
+                            text(permission.name)
                         } else {
-                            i { text permission.name }
+                            i { text(permission.name) }
                         }
                     }
                 }
             }
 
-            def identities;
+            def identities = (instance != null) ? instance.folderPermissionIdentities : descriptor.staticPermissionIdentities
             
-            if (instance != null) {
-                identities = instance.folderPermissionIdentities
-            } else {
-                identities = descriptor.staticPermissionIdentities
-            }
-            
-            for (identity in identities) {
+            identities.each { identity ->
                 tr(name: identity) {
                     td {
                         text(identity.displayName)
@@ -73,6 +72,12 @@ f.section(title: "GitLab Folder Authorization") {
                     }
                 }
             }
+        }
+        
+        f.entry(title: "Add group/user:") {
+            input(type: "text", id: "addUserGroupText", style: "width: 200px")
+            input(type: "button", id: "addGroupRowButton", onclick: "addGroupRow()", value: "Add group")
+            input(type: "button", id: "addUserRowButton", onclick: "addUserRow()", value: "Add user")
         }
     }
 }

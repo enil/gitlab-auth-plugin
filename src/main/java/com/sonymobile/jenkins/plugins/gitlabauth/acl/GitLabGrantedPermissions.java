@@ -113,6 +113,17 @@ public class GitLabGrantedPermissions {
         return list;
     }
     
+    public List<GitLabPermissionIdentity> getGroupPermissionIdentities() {
+        List<GitLabPermissionIdentity> list = new ArrayList<GitLabPermissionIdentity>();
+        
+        for (GitLabPermissionIdentity identity : grantedPermissions.keySet()) {
+            if (identity.type.equals(IdentityType.GROUP)) {
+                list.add(identity);
+            }
+        }
+        return list;
+    }
+    
     /** Converter class used to store and restore the internal state of this object to a config.xml file. */
     public static class ConverterImpl implements Converter {
         /** The XML field name in the config.xml file. */

@@ -5,10 +5,11 @@ def j = namespace("jelly:core")
 
 f.block() {
     link(rel: "stylesheet", href: rootURL+"/plugin/gitlab-auth/table.css", type: "text/css")
+    script(type: "text/javascript", src: rootURL+"/plugin/gitlab-auth/authorization.matrix.js") 
 
     def permissionGroups = descriptor.allPermissionGroups
 
-    table("class": "center-align global-matrix-authorization-strategy-table", name: "permissionTable") {
+    table("class": "center-align global-matrix-authorization-strategy-table", name: "permissionTable", id: "permissionTable") {
         tr {
             td("class": "pane-header", rowspan: "2") {
                 text("Permission")
@@ -16,52 +17,65 @@ f.block() {
                 text("Identity")
             }
 
-            for (pg in permissionGroups.keySet()) {
-                td("class": "pane-header", colspan: permissionGroups.get(pg).size()) {
-                    text(pg.title)
+            permissionGroups.each { permissionGroup, permissions ->
+                td("class": "pane-header", colspan: permissions.size()) {
+                    text(permissionGroup.title)
                 }
             }
         }
 
         tr {
-            for (pg in permissionGroups.keySet()) {
-                for (p in permissionGroups.get(pg)) {
+            permissionGroups.each { permissionGroup, permissions ->
+                permissions.each { permission ->
                     td {
-                        if(!p.enabled) {
+                        script(type: "text/javascript") {
+                            text('addItem("' + permission.id + '")')
+                        }
+                        
+                        if(!permission.enabled) {
                             i {
-                                text(p.name)
+                                text(permission.name)
                             }
                         } else {
-                            text(p.name)
+                            text(permission.name)
                         }
                     }
                 }
             }
         }
 
-        for (identity in descriptor.permissionIdentities) {
+        descriptor.permissionIdentities.each { identity ->
             tr(name: identity) {
                 td {
                     text(identity.displayName)
                 }
 
-                for (pg in permissionGroups.keySet()) {
-                    for (p in permissionGroups.get(pg)) {
+                permissionGroups.each { permissionGroup, permissions ->
+                    permissions.each { permission ->
                         td {
-                            f.checkbox(name: "["+p.id+"]", checked: (instance != null) ? instance.isPermissionSet(identity, p) : false)
+                            f.checkbox(name: "["+permission.id+"]", checked: instance?.isPermissionSet(identity, permission))
                         }
                     }
                 }
             }
         }
     }
-
-    f.entry(title: "Admin usernames", description: "GitLab usernames who will be granted admin rights. Should be separated by a comma.") {
+    
+    f.entry(title: "Add group/user:") {
+        input(type: "text", id: "addUserGroupText", style: "width: 200px")
+        input(type: "button", id: "addGroupRowButton", onclick: "addGroupRow()", value: "Add group")
+        input(type: "button", id: "addUserRowButton", onclick: "addUserRow()", value: "Add user")
+    }
+    
+    f.entry(title: "Jenkins admins:") {
         f.checkbox(field: "useGitLabAdmins", title: "Make all GitLab admins Jenkins admins.")
+    }
+
+    f.entry(title: "Admin usernames:", description: "GitLab usernames who will be granted admin rights. Should be separated by a comma.") {
         f.textbox(field: "adminUsernames")
     }
     
-    f.entry(title: "Admin groups", description: "GitLab groups who will be granted admin rights. Should be separated by a comma.") {
+    f.entry(title: "Admin groups:", description: "GitLab groups who will be granted admin rights. Should be separated by a comma.") {
         f.textbox(field: "adminGroups")
     }
 }
