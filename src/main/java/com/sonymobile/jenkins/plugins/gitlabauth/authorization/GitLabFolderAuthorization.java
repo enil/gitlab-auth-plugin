@@ -62,9 +62,6 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
     /** The per-folder ACL. */
     private final GitLabFolderACL folderACL;
 
-    /** The group ID of the GitLab group for the folder. */
-    private int groupId;
-
     /** The logger for the class. */
     private transient final Logger LOGGER = Logger.getLogger(GitLabFolderAuthorization.class.getName());
 
@@ -75,9 +72,7 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
      */
     public GitLabFolderAuthorization(int groupId) {
         // no permissions set
-        this(new GitLabFolderACL(new GitLabGrantedPermissions()));
-
-        this.groupId = groupId;
+        this(new GitLabFolderACL(groupId, new GitLabGrantedPermissions()));
     }
 
     /**
@@ -104,7 +99,7 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
      * @return the groupId
      */
     public int getGroupId() {
-        return groupId;
+        return folderACL.getGroupId();
     }
 
     /**
@@ -154,13 +149,13 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
     public GitLabFolderAuthorization reconfigure(StaplerRequest request, JSONObject formData)
             throws Descriptor.FormException {
         // create a new instance from the form data
-        GitLabFolderAuthorization newInstance = (GitLabFolderAuthorization)super.reconfigure(request, formData);
-        if (newInstance != null) {
+        GitLabFolderAuthorization newFolderAuth = (GitLabFolderAuthorization)super.reconfigure(request, formData);
+        if (newFolderAuth != null) {
             // preserve group ID
-            newInstance.groupId = groupId;
+            newFolderAuth.folderACL.setGroupId(getGroupId());
         }
 
-        return newInstance;
+        return newFolderAuth;
     }
 
     /**
@@ -173,9 +168,9 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
      */
     private GitLabGroupInfo getGroupInfo() throws GitLabApiException {
         try {
-            return GitLab.getGroup(groupId);
+            return GitLab.getGroup(getGroupId());
         } catch (GitLabApiException e) {
-            LOGGER.warning("Failed for fetch group with ID " + groupId);
+            LOGGER.warning("Failed for fetch group with ID " + getGroupId());
             throw e;
         }
     }
