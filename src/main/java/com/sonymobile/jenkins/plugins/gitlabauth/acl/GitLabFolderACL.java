@@ -56,8 +56,27 @@ public class GitLabFolderACL extends GitLabAbstactACL {
      * 
      * @param grantedPermissions the granted permissions
      */
+    public GitLabFolderACL(int groupId, GitLabGrantedPermissions grantedPermissions) {
+        super(grantedPermissions);
+        this.groupId = groupId;
+    }
+    
+    /**
+     * Creates a folder ACL to use for GitLabFolderAuthorization.
+     * 
+     * @param grantedPermissions the granted permissions
+     */
     public GitLabFolderACL(GitLabGrantedPermissions grantedPermissions) {
         super(grantedPermissions);
+    }
+    
+    /**
+     * Gets the group id associated with this ACL.
+     * 
+     * @return the group id
+     */
+    public int getGroupId() {
+        return groupId;
     }
     
     /**
