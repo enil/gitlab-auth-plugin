@@ -25,39 +25,42 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth.acl;
 
-import hudson.security.Permission;
-
-import java.util.logging.Logger;
-
-import jenkins.model.Jenkins;
-
-import org.acegisecurity.Authentication;
-
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
 import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabAuthorization;
 import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
+import hudson.model.Item;
+import hudson.security.Permission;
+import hudson.security.PermissionGroup;
+import jenkins.model.Jenkins;
+import org.acegisecurity.Authentication;
+
+import java.util.Collection;
+import java.util.logging.Logger;
+
+import static java.util.Collections.*;
 
 /**
  * Folder ACL for GitLab.
  * 
  * @author Andreas Alanko
  */
-public class GitLabFolderACL extends GitLabAbstactACL {
+public class GitLabFolderACL extends GitLabAbstractACL {
     /** The group id associated with this ACL */
     private int groupId;
     
     /** Logger for this class. */
     private final transient Logger LOGGER = Logger.getLogger(GitLabFolderACL.class.getName());
-    
+
+
     /**
-     * Creates a folder ACL to use for GitLabFolderAuthorization.
-     * 
-     * @param grantedPermissions the granted permissions
+     * Creates a folder ACL to use for GitLabFolderAuthorization with default permissions.
+     *
+     * @param groupId the GitLab group ID
      */
-    public GitLabFolderACL(int groupId, GitLabGrantedPermissions grantedPermissions) {
-        super(grantedPermissions);
+    public GitLabFolderACL(int groupId) {
+        super();
         this.groupId = groupId;
     }
     
@@ -69,7 +72,12 @@ public class GitLabFolderACL extends GitLabAbstactACL {
     public GitLabFolderACL(GitLabGrantedPermissions grantedPermissions) {
         super(grantedPermissions);
     }
-    
+
+    @Override
+    public Collection<PermissionGroup> getApplicablePermissionGroups() {
+        return singletonList(PermissionGroup.get(Item.class));
+    }
+
     /**
      * Gets the group id associated with this ACL.
      * 
@@ -150,7 +158,13 @@ public class GitLabFolderACL extends GitLabAbstactACL {
         }
         return false;
     }
-    
+
+    @Override
+    protected void setDefaultPermissions() {
+        getGrantedPermissions().addPermissionGroups(GitLabPermissionIdentity.GITLAB_OWNER,
+                getApplicablePermissionGroups());
+    }
+
     /**
      * Checks if the given user has admin access on the Jenkins server.
      * 

@@ -25,14 +25,6 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth.acl;
 
-import hudson.security.Permission;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.logging.Logger;
-
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
 import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevel;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity.IdentityType;
@@ -41,10 +33,18 @@ import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
+import hudson.security.Permission;
+import hudson.security.PermissionGroup;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.logging.Logger;
 
 /**
  * Used to store permission identities and their respective granted permissions.
- * 
+ *
  * @author Andreas Alanko
  */
 public class GitLabGrantedPermissions {
@@ -57,10 +57,10 @@ public class GitLabGrantedPermissions {
     public GitLabGrantedPermissions() {
         grantedPermissions = new TreeMap<GitLabPermissionIdentity, List<Permission>>();
     }
-    
+
     /**
      * Checks if the given identity has the given permission.
-     * 
+     *
      * @param identity   the identity
      * @param permission the permission
      * @return true if the identity has permission
@@ -73,10 +73,10 @@ public class GitLabGrantedPermissions {
         }
         return false;
     }
-    
+
     /**
      * Adds a permission for the given identity.
-     * 
+     *
      * @param identity   the identity
      * @param permission the permission
      */
@@ -88,23 +88,56 @@ public class GitLabGrantedPermissions {
             grantedPermissions.get(identity).add(permission);
         }
     }
-    
+
+    /**
+     * Adds multiple permissions for a the given identity.
+     *
+     * @param identity    the identity
+     * @param permissions the permissions
+     */
+    public void addPermissions(GitLabPermissionIdentity identity, Iterable<Permission> permissions) {
+        for (final Permission permission : permissions) {
+            addPermission(identity, permission);
+        }
+    }
+
+    /**
+     * Adds all permissions from a permission group for the given identity.
+     *
+     * @param identity        the identity
+     * @param permissionGroup the permission group
+     */
+    public void addPermissionGroup(GitLabPermissionIdentity identity, PermissionGroup permissionGroup) {
+        addPermissions(identity, permissionGroup.getPermissions());
+    }
+
+    /**
+     * Adds all permissions from multiple permission groups for the given identity.
+     *
+     * @param identity         the identity
+     * @param permissionGroups the permission groups
+     */
+    public void addPermissionGroups(GitLabPermissionIdentity identity, Iterable<PermissionGroup> permissionGroups) {
+        for (final PermissionGroup permissionGroup : permissionGroups) {
+            addPermissionGroup(identity, permissionGroup);
+        }
+    }
+
     /**
      * Gets a list with the configured GitLabPermission identities for this object.
-     * 
-     * The list will include all static Jenkins identities and if specified
-     * also all static GitLab identities.
-     * 
+     *
+     * The list will include all static Jenkins identities and if specified also all static GitLab identities.
+     *
      * @param getGitLabIdentities if GitLab identities should be included
      * @return a list of GitLabPermissionIdentities
      */
     public List<GitLabPermissionIdentity> getPermissionIdentities(boolean getGitLabIdentities) {
-        List<GitLabPermissionIdentity> list = 
+        List<GitLabPermissionIdentity> list =
                 GitLabPermissionIdentity.getGlobalStaticPermissionIdentities(getGitLabIdentities);
-        
-        List<GitLabPermissionIdentity> grantedIdentities = 
+
+        List<GitLabPermissionIdentity> grantedIdentities =
                 new ArrayList<GitLabPermissionIdentity>(grantedPermissions.keySet());
-        
+
         for (GitLabPermissionIdentity pi : grantedIdentities) {
             if (!list.contains(pi)) {
                 list.add(pi);
@@ -112,7 +145,7 @@ public class GitLabGrantedPermissions {
         }
         return list;
     }
-    
+
     public List<GitLabPermissionIdentity> getGroupPermissionIdentities() {
         List<GitLabPermissionIdentity> list = new ArrayList<GitLabPermissionIdentity>();
         
@@ -123,26 +156,26 @@ public class GitLabGrantedPermissions {
         }
         return list;
     }
-    
+
     /** Converter class used to store and restore the internal state of this object to a config.xml file. */
     public static class ConverterImpl implements Converter {
         /** The XML field name in the config.xml file. */
         private static final String XML_FIELD_PERMISSION = "permission";
-        
+
         /** Logger for this class. */
         private final transient Logger LOGGER = Logger.getLogger(GitLabGlobalACL.class.getName());
-        
+
         public boolean canConvert(Class clazz) {
             return clazz.equals(GitLabGrantedPermissions.class);
         }
 
         /** Used to write the internal data to the config.xml file. */
         public void marshal(Object value, HierarchicalStreamWriter writer, MarshallingContext context) {
-            GitLabGrantedPermissions grantedPermissions = (GitLabGrantedPermissions) value;
-            
+            GitLabGrantedPermissions grantedPermissions = (GitLabGrantedPermissions)value;
+
             for (GitLabPermissionIdentity pi : grantedPermissions.grantedPermissions.keySet()) {
                 List<Permission> permissions = grantedPermissions.grantedPermissions.get(pi);
-                
+
                 for (int i = 0; i < permissions.size(); i++) {
                     writer.startNode(XML_FIELD_PERMISSION);
                     writer.setValue(pi.type + ":" + pi.id + ":" + permissions.get(i).getId());
@@ -154,39 +187,39 @@ public class GitLabGrantedPermissions {
         /** Used to parse data stored in the config.xml file. */
         public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context) {
             GitLabGrantedPermissions grantedPermissions = new GitLabGrantedPermissions();
-            
+
             while (reader.hasMoreChildren()) {
                 reader.moveDown();
-                
+
                 if (XML_FIELD_PERMISSION.equals(reader.getNodeName())) {
                     String readerValue = reader.getValue();
                     String[] value = readerValue.split(":");
-                    
+
                     if (value.length == 3) {
                         GitLabPermissionIdentity identity = null;
-                        
+
                         IdentityType type = IdentityType.valueOf(value[0]);
                         String id = value[1];
-                                                
+
                         switch (type) {
-                        case GITLAB:
-                            identity = GitLabPermissionIdentity.getGitLabIdentityFromAccessLevel(
-                                    GitLabAccessLevel.getAccessLevelWithName(id));
-                            break;
-                        case JENKINS:
-                            identity = GitLabPermissionIdentity.getJenkinsIdentityFromAccessLevel(
-                                    JenkinsAccessLevel.getAccessLevelWithName(id));
-                            break;
-                        case GROUP:
-                            identity = GitLabPermissionIdentity.group(id);
-                            break;
-                        case USER:
-                            identity = GitLabPermissionIdentity.user(id);
-                            break;
+                            case GITLAB:
+                                identity = GitLabPermissionIdentity.getGitLabIdentityFromAccessLevel(
+                                        GitLabAccessLevel.getAccessLevelWithName(id));
+                                break;
+                            case JENKINS:
+                                identity = GitLabPermissionIdentity.getJenkinsIdentityFromAccessLevel(
+                                        JenkinsAccessLevel.getAccessLevelWithName(id));
+                                break;
+                            case GROUP:
+                                identity = GitLabPermissionIdentity.group(id);
+                                break;
+                            case USER:
+                                identity = GitLabPermissionIdentity.user(id);
+                                break;
                         }
-                        
+
                         Permission permission = Permission.fromId(value[2]);
-                        if(permission != null) {
+                        if (permission != null) {
                             grantedPermissions.addPermission(identity, permission);
                         } else {
                             LOGGER.warning("Unknown permission id: " + value[2]);
@@ -195,7 +228,7 @@ public class GitLabGrantedPermissions {
                         LOGGER.warning("Couldn't parse identity/permission: " + readerValue);
                     }
                 }
-                
+
                 reader.moveUp();
             }
             return grantedPermissions;

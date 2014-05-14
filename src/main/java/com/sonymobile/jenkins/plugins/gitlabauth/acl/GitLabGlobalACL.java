@@ -25,30 +25,32 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth.acl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Logger;
-
-import org.acegisecurity.Authentication;
-import org.apache.commons.lang.StringUtils;
-
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabGroupMemberInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
-
 import hudson.security.ACL;
 import hudson.security.Permission;
+import hudson.security.PermissionGroup;
+import org.acegisecurity.Authentication;
+import org.apache.commons.lang.StringUtils;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.logging.Logger;
 
 /**
  * Global ACL for GitLab
  * 
  * @author Andreas Alanko
  */
-public class GitLabGlobalACL extends GitLabAbstactACL {
-    /** GitLab usernames with admin rights on Jenkins. */
+public class GitLabGlobalACL extends GitLabAbstractACL {
+/** GitLab usernames with admin rights on Jenkins. */
     private List<String> adminUsernames;
-    
+
     /** GitLab groups with admin rights on Jenkins. */
     private List<String> adminGroups;
     
@@ -77,7 +79,19 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
         this.adminUsernames = splitAdminIdentitiesIntoList(adminUsernames);
         this.adminGroups = splitAdminIdentitiesIntoList(adminGroups);
     }
-    
+
+    public GitLabGlobalACL() {
+        super();
+    }
+
+    @Override
+    public Collection<PermissionGroup> getApplicablePermissionGroups() {
+        SortedSet<PermissionGroup> permissionGroups = new TreeSet<PermissionGroup>(PermissionGroup.getAll());
+        permissionGroups.remove(PermissionGroup.get(Permission.class));
+
+        return permissionGroups;
+    }
+
     /**
      * Splits a string of identities separated by commas and adds them to
      * a List. 
@@ -149,7 +163,13 @@ public class GitLabGlobalACL extends GitLabAbstactACL {
         }
         return false;
     }
-    
+
+    @Override
+    protected void setDefaultPermissions() {
+        getGrantedPermissions().addPermissionGroups(GitLabPermissionIdentity.JENKINS_ADMIN,
+                getApplicablePermissionGroups());
+    }
+
     /**
      * Returns a string with GitLab usernames who has admin access in Jenkins.
      * 

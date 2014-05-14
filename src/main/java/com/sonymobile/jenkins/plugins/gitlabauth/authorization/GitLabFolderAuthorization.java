@@ -72,7 +72,7 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
      */
     public GitLabFolderAuthorization(int groupId) {
         // no permissions set
-        this(new GitLabFolderACL(groupId, new GitLabGrantedPermissions()));
+        this(new GitLabFolderACL(groupId));
     }
 
     /**
@@ -235,15 +235,6 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
             }
 
             return new GitLabFolderACL(grantedPermissions);
-        }
-
-        /**
-         * Returns the Permission Group belonging to the Item class.
-         *
-         * @return a permission group
-         */
-        public PermissionGroup getItemPermissionGroup() {
-            return PermissionGroup.get(Item.class);
         }
 
         /**
