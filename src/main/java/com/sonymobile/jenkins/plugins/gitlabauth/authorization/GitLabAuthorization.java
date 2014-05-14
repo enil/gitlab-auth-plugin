@@ -148,8 +148,15 @@ public class GitLabAuthorization extends AuthorizationStrategy {
     public ACL getACL(Folder folder) {
         GitLabFolderAuthorization folderAuth = folder.getProperties().get(GitLabFolderAuthorization.class);
         
+        if (folder.getParent() instanceof Folder) {
+            return getACL((Folder) folder.getParent());
+        }
+        
         if(folderAuth != null) {
-            return folderAuth.getACL();
+            // groupId is 0 if its not a GitLab folder.
+            if (folderAuth.getGroupId() != 0) {
+                return folderAuth.getACL();
+            }
         }
         return getRootACL();
     }
