@@ -108,11 +108,8 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
      * @return the groupPath
      */
     public String getGroupPath() {
-        try {
-            return getGroupInfo().getPath();
-        } catch (GitLabApiException e) {
-            return "<could not fetch group information>";
-        }
+        GitLabGroupInfo groupInfo = getGroupInfo();
+        return (groupInfo != null) ? groupInfo.getPath() : "<could not fetch group information>";
     }
 
     /**
@@ -121,11 +118,8 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
      * @return the groupName
      */
     public String getGroupName() {
-        try {
-            return getGroupInfo().getName();
-        } catch (GitLabApiException e) {
-            return "<could not fetch group information>";
-        }
+        GitLabGroupInfo groupInfo = getGroupInfo();
+        return (groupInfo != null) ? groupInfo.getName() : "<could not fetch group information>";
     }
 
     /**
@@ -138,7 +132,7 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
      * @return true if the given identity has the given permission
      */
     public boolean isPermissionSet(GitLabPermissionIdentity identity, Permission permission) {
-        return folderACL != null && folderACL.isPermissionSet(identity, permission);
+        return folderACL.isPermissionSet(identity, permission);
     }
 
     public List<GitLabPermissionIdentity> getFolderPermissionIdentities() {
@@ -160,19 +154,18 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
 
     /**
      * Gets group information for the GitLab group from the API.
-     *
+     * 
      * Logger will warn if fetching the group information failed.
      *
-     * @return a group info object
-     * @throws GitLabApiException if fetching the group failed
+     * @return a group info object or null if fetch failed
      */
-    private GitLabGroupInfo getGroupInfo() throws GitLabApiException {
+    private GitLabGroupInfo getGroupInfo() {
         try {
             return GitLab.getGroup(getGroupId());
         } catch (GitLabApiException e) {
             LOGGER.warning("Failed for fetch group with ID " + getGroupId());
-            throw e;
         }
+        return null;
     }
 
     @Extension
