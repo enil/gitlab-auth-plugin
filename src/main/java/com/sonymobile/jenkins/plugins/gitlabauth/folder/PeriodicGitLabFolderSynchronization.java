@@ -47,7 +47,7 @@ public class PeriodicGitLabFolderSynchronization extends PeriodicWork {
     private static final long DEFAULT_PERIOD_DURATION = 10;
 
     /** The default value for {@link #periodUnit}. */
-    private static final TimeUnit DEFAULT_PERIOD_UNIT = TimeUnit.MINUTES;
+    private static final TimeUnit DEFAULT_PERIOD_UNIT = TimeUnit.SECONDS;
 
     /** The synchronizer creating folders from GitLab groups. */
     private final GitLabFolderSynchronizer synchronizer;

@@ -31,12 +31,15 @@ import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabAuthorization;
 import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
 import hudson.model.Item;
+import hudson.model.View;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Logger;
 
 import static java.util.Collections.*;
@@ -75,7 +78,11 @@ public class GitLabFolderACL extends GitLabAbstractACL {
 
     @Override
     public Collection<PermissionGroup> getApplicablePermissionGroups() {
-        return singletonList(PermissionGroup.get(Item.class));
+        List<PermissionGroup> permissionGroups = new ArrayList<PermissionGroup>(2);
+        permissionGroups.add(PermissionGroup.get(Item.class));
+        permissionGroups.add(PermissionGroup.get(View.class));
+
+        return permissionGroups;
     }
 
     /**
