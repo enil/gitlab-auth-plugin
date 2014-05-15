@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  */
 
-package com.sonymobile.jenkins.plugins.gitlabauth;
+package com.sonymobile.jenkins.plugins.gitlabauth.acl;
 
 /**
  * Enum class for Jenkins access levels.

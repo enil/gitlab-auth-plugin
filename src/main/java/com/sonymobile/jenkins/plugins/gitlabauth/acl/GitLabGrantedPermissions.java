@@ -26,13 +26,13 @@
 package com.sonymobile.jenkins.plugins.gitlabauth.acl;
 
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
-import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevel;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity.IdentityType;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
+
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
 

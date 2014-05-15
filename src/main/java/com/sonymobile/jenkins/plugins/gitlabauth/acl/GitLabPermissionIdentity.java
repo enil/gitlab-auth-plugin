@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
-import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevel;
 
 /**
  * Used to create a permission identity.

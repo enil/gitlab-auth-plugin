@@ -34,6 +34,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabAbstractACL;
+
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
@@ -41,10 +42,10 @@ import org.kohsuke.stapler.StaplerRequest;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
-import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevel;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabGlobalACL;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabGrantedPermissions;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity;
+import com.sonymobile.jenkins.plugins.gitlabauth.acl.JenkinsAccessLevel;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity.IdentityType;
 
 import hudson.Extension;

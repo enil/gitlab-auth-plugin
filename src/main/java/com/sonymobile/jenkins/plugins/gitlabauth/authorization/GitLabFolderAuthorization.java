@@ -32,11 +32,12 @@ import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
-import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevel;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabFolderACL;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabGrantedPermissions;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity;
+import com.sonymobile.jenkins.plugins.gitlabauth.acl.JenkinsAccessLevel;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity.IdentityType;
+
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.model.Item;
@@ -45,6 +46,7 @@ import hudson.security.Permission;
 import hudson.security.PermissionGroup;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
+
 import org.kohsuke.stapler.StaplerRequest;
 
 import java.util.List;

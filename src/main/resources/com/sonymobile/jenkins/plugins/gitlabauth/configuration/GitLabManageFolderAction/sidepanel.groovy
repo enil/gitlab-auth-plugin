@@ -23,16 +23,14 @@
  * THE SOFTWARE.
  */
 
-package com.sonymobile.jenkins.plugins.gitlabauth
+package com.sonymobile.jenkins.plugins.gitlabauth.configuration
 
+def l = namespace("/lib/layout")
 def f = namespace("/lib/form")
- 
-f.section(title: "GitLab Authorization Configuration") {
-    f.entry(title: "Synchronization interval (in minutes)") {
-        f.number("default": "10", field: "periodDuration")
-    }
-    
-    f.entry(title: "Folder creation strategy") {
-        f.booleanRadio(field: "autoCreateFolders", "true": "Automatically", "false": "User")
+def st = namespace("jelly:stapler")
+
+l."side-panel"() {
+    l.tasks() {
+        l.task(title: "Test Panel")
     }
 }

@@ -2,6 +2,7 @@ package com.sonymobile.jenkins.plugins.gitlabauth.GitLabAuthorization
 
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabGlobalACL
 
+
 def f = namespace("/lib/form")
 def j = namespace("jelly:core")
 
