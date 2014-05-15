@@ -1,4 +1,4 @@
-package com.sonymobile.jenkins.plugins.gitlabauth;
+package com.sonymobile.jenkins.plugins.gitlabauth.security;
 
 import com.sonymobile.gitlab.helpers.JsonFileLoader;
 import com.sonymobile.gitlab.model.GitLabSessionInfo;

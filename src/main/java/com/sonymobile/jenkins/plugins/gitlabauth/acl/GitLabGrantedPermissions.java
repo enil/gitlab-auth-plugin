@@ -139,7 +139,7 @@ public class GitLabGrantedPermissions {
                 new ArrayList<GitLabPermissionIdentity>(grantedPermissions.keySet());
 
         for (GitLabPermissionIdentity pi : grantedIdentities) {
-            if (!list.contains(pi)) {
+            if (!list.contains(pi) && (pi.type.equals(IdentityType.USER) || pi.type.equals(IdentityType.GROUP))) {
                 list.add(pi);
             }
         }

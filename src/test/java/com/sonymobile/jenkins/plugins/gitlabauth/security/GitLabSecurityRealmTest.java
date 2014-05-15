@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  */
 
-package com.sonymobile.jenkins.plugins.gitlabauth;
+package com.sonymobile.jenkins.plugins.gitlabauth.security;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;

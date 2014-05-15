@@ -1,4 +1,4 @@
-package com.sonymobile.jenkins.plugins.gitlabauth;
+package com.sonymobile.jenkins.plugins.gitlabauth.acl;
 
 import static org.junit.Assert.*;
 
@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
+import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevel;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity;
 
 public class GitLabPermissionIdentityTest {

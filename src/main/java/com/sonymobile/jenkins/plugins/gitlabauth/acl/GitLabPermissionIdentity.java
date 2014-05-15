@@ -157,11 +157,11 @@ public class GitLabPermissionIdentity implements Comparable<GitLabPermissionIden
      * Gets all static identities such as Jenkins:admin and GitLab:Owner.
      * 
      * The boolean getGitLab specifies if the static GitLab identities should
-     * be returned.
+     * be included.
      * 
-     * No user or group identities will be returned.
+     * No user or group identities will be included.
      * 
-     * @param getGitLab if GitLab identities should be returned
+     * @param getGitLabIdentities if GitLab identities should be included
      * @return a list with permission identities
      */
     public static List<GitLabPermissionIdentity> getGlobalStaticPermissionIdentities(boolean getGitLabIdentities) {
