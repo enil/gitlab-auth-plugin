@@ -50,17 +50,17 @@ import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataLoaders.
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataLoaders.loadGroups;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataLoaders.loadUser;
 import static org.apache.commons.lang.StringUtils.EMPTY;
-import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.reset;
-import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
-import static org.powermock.api.easymock.PowerMock.mockStaticPartial;
+import static org.powermock.api.easymock.PowerMock.createMock;
+import static org.powermock.api.easymock.PowerMock.mockStatic;
+import static org.powermock.api.easymock.PowerMock.replay;
+import static org.powermock.api.easymock.PowerMock.reset;
+import static org.powermock.api.easymock.PowerMock.verify;
 import static org.powermock.reflect.Whitebox.getInnerClassType;
 import static org.powermock.reflect.Whitebox.invokeConstructor;
 import static org.powermock.reflect.Whitebox.invokeMethod;
@@ -71,7 +71,7 @@ import static org.powermock.reflect.Whitebox.invokeMethod;
  * @author Emil Nilsson
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest(GitLabConfiguration.class)
+@PrepareForTest({GitLabApiClient.class, GitLabConfiguration.class})
 public class GitLabTest {
     /** The number of nanoseconds in a second, for the ticker. */
     private static final long SECONDS = TimeUnit.SECONDS.toNanos(1);
@@ -94,7 +94,7 @@ public class GitLabTest {
         mockApiClient = createMock(GitLabApiClient.class);
 
         // mock GitLabConfiguration to return the mocked GitLab API Client
-        mockStaticPartial(GitLabConfiguration.class, "getApiClient");
+        mockStatic(GitLabConfiguration.class);
         expect(GitLabConfiguration.getApiClient()).andReturn(mockApiClient).anyTimes();
         PowerMock.replay(GitLabConfiguration.class);
 
