@@ -36,12 +36,16 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataCreators.expectNewFolderAuthorization;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataCreators.mockFolderAuthorization;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataCreators.mockGroupInfo;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockFolderBuilder.folder;
@@ -63,6 +67,8 @@ import static org.junit.Assert.assertThat;
  *
  * @author Emil Nilsson
  */
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({GitLabFolderAuthorization.class, GitLabFolderCreator.class})
 public class GitLabFolderCreatorTest {
     /** A rule for catching expected exceptions. */
     @Rule
@@ -99,7 +105,7 @@ public class GitLabFolderCreatorTest {
      * Prepare the folder creator for testing.
      */
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         // clear items list
         items = new LinkedList<TopLevelItem>();
         // clear map with existing GitLab folders
@@ -118,6 +124,9 @@ public class GitLabFolderCreatorTest {
         // mock itemGroup#getGetItems() returning the items list
         itemGroup = createMock(ModifiableTopLevelItemGroup.class);
         expect(itemGroup.getItems()).andReturn(items).anyTimes();
+
+        // mock creating new GitLabFolderAuthorization folder properties
+        expectNewFolderAuthorization();
 
         folderCreator = new GitLabFolderCreator(itemGroup, folderDescriptor);
     }

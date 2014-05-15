@@ -31,8 +31,8 @@ import hudson.model.Describable;
 import hudson.util.DescribableList;
 import org.easymock.IAnswer;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
@@ -48,7 +48,7 @@ import static org.easymock.EasyMock.replay;
  */
 public class MockFolderBuilder extends MockTopLevelItemBuilder<Folder, MockFolderBuilder> {
     /** The properties of the folder. */
-    private final Map<Class, FolderProperty> folderProperties = new HashMap<Class, FolderProperty>();
+    private final List<FolderProperty> folderProperties = new ArrayList<FolderProperty>();
 
     /**
      * Creates a builder object.
@@ -83,8 +83,25 @@ public class MockFolderBuilder extends MockTopLevelItemBuilder<Folder, MockFolde
      * @return this object for chaining
      */
     public MockFolderBuilder addProperty(FolderProperty property) {
-        folderProperties.put(property.getClass(), property);
+        folderProperties.add(property);
         return this;
+    }
+
+    /**
+     * Gets the property matching a class from the property list.
+     *
+     * The method returns the first property which class inherits from the class.
+     *
+     * @param propertyClass the class to match
+     * @return a property or null if the property isn't set
+     */
+    private FolderProperty getProperty(Class<FolderProperty> propertyClass) {
+        for (final FolderProperty property : folderProperties) {
+            if (propertyClass.isAssignableFrom(property.getClass())) {
+                return property;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -108,7 +125,7 @@ public class MockFolderBuilder extends MockTopLevelItemBuilder<Folder, MockFolde
         // mock getting properties
         expect(propertyList.get(anyObject(Class.class))).andAnswer(new IAnswer<Describable>() {
             public Describable answer() throws Throwable {
-                return folderProperties.get(getCurrentArguments()[0]);
+                return getProperty((Class)getCurrentArguments()[0]);
             }
         });
 

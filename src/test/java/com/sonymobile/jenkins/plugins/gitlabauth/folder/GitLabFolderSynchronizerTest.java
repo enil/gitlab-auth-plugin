@@ -43,6 +43,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import java.util.LinkedList;
 import java.util.List;
 
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataCreators.expectNewFolderAuthorization;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataCreators.mockFolderAuthorization;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataCreators.mockGroupInfo;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockFolderBuilder.folder;
@@ -63,7 +64,7 @@ import static org.powermock.api.easymock.PowerMock.mockStatic;
  * @author Emil Nilsson
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest(GitLab.class)
+@PrepareForTest({GitLab.class, GitLabFolderAuthorization.class, GitLabFolderCreator.class})
 public class GitLabFolderSynchronizerTest {
     /** The descriptor for a Folder item. */
     private static final TopLevelItemDescriptor folderDescriptor = new Folder.DescriptorImpl();
@@ -94,6 +95,9 @@ public class GitLabFolderSynchronizerTest {
         mockStatic(GitLab.class);
         expect(GitLab.getGroups()).andReturn(groups).atLeastOnce();
         PowerMock.replay(GitLab.class);
+
+        // mock creating new GitLabFolderAuthorization folder properties
+        expectNewFolderAuthorization();
 
         synchronizer = new GitLabFolderSynchronizer(new GitLabFolderCreator(itemGroup, folderDescriptor));
     }
@@ -145,7 +149,8 @@ public class GitLabFolderSynchronizerTest {
     }
 
     /**
-     * Tests {@link GitLabFolderSynchronizer#synchronizeGroupFolders()} with an item group with existing GitLab folders.
+     * Tests {@link GitLabFolderSynchronizer#synchronizeGroupFolders()} with an item group with existing GitLab
+     * folders.
      */
     @Test
     public void withExistingGitLabFolders() throws Exception {

@@ -27,10 +27,17 @@ package com.sonymobile.jenkins.plugins.gitlabauth.helpers;
 
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
+import org.easymock.IAnswer;
+import org.powermock.api.easymock.PowerMock;
+import org.powermock.modules.junit4.PowerMockRunner;
 
+import static org.easymock.EasyMock.anyInt;
+import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.getCurrentArguments;
 import static org.easymock.EasyMock.replay;
+import static org.powermock.api.easymock.PowerMock.expectNew;
 
 /**
  * Helper methods for creating mock data for tests.
@@ -47,7 +54,9 @@ public class MockDataCreators {
      * @return a folder property object
      */
     public static GitLabFolderAuthorization mockFolderAuthorization(int groupId) {
-        GitLabFolderAuthorization folderAuthorization = new GitLabFolderAuthorization(groupId);
+        GitLabFolderAuthorization folderAuthorization = createMock(GitLabFolderAuthorization.class);
+        expect(folderAuthorization.getGroupId()).andReturn(groupId).anyTimes();
+        replay(folderAuthorization);
 
         return folderAuthorization;
     }
@@ -68,5 +77,30 @@ public class MockDataCreators {
         replay(groupInfo);
 
         return groupInfo;
+    }
+
+    /**
+     * Mocks the constructor of {@link GitLabFolderAuthorization}.
+     *
+     * Mocks constructor calls to {@link GitLabFolderAuthorization} with an int parameter returning a mock folder
+     * authorization object from {@link #mockFolderAuthorization(int)}.
+     *
+     * Note: the test class must run with {@link PowerMockRunner} and prepare the {@link GitLabFolderAuthorization}
+     * class and the class invoking the constructor for testing with PowerMock.
+     */
+    public static void expectNewFolderAuthorization() {
+        try {
+            // create a new mock folder authorization with the groupId parameter when the constructor is invoked
+            expectNew(GitLabFolderAuthorization.class, anyInt())
+                    .andAnswer(new IAnswer<GitLabFolderAuthorization>() {
+                        public GitLabFolderAuthorization answer() throws Throwable {
+                            return mockFolderAuthorization((Integer)getCurrentArguments()[0]);
+                        }
+                    }).anyTimes();
+            PowerMock.replay(GitLabFolderAuthorization.class);
+        } catch (Exception e) {
+            // not expected to throw an exception, rethrow as runtime exception
+            throw new RuntimeException(e);
+        }
     }
 }
