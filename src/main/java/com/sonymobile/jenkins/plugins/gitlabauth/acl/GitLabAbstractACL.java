@@ -25,47 +25,77 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth.acl;
 
-import java.util.List;
-
+import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
 import hudson.security.ACL;
 import hudson.security.Permission;
-
+import hudson.security.PermissionGroup;
 import org.acegisecurity.Authentication;
 
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabGroupMemberInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
-import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
+
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Abstract ACL class for other GitLab ACLs to extend.
  * 
  * @author Andreas Alanko
  */
-public abstract class GitLabAbstactACL extends ACL {
+public abstract class GitLabAbstractACL extends ACL {
     /** Contains all identities and their respective granted permissions. */
-    private GitLabGrantedPermissions grantedPermissions;
-    
+    private final GitLabGrantedPermissions grantedPermissions;
+
     /**
      * Creates an ACL based on the given map of granted permissions.
      * 
      * @param grantedPermissions map of granted permissions
      */
-    protected GitLabAbstactACL(GitLabGrantedPermissions grantedPermissions) {
+    protected GitLabAbstractACL(GitLabGrantedPermissions grantedPermissions) {
         this.grantedPermissions = grantedPermissions;
-    }
-    
-    public List<GitLabPermissionIdentity> getPermissionIdentities(boolean getGitLabIdentities) {
-        return grantedPermissions.getPermissionIdentities(getGitLabIdentities);
     }
 
     /**
+     * Creates an ACL with default permissions.
+     */
+    protected GitLabAbstractACL() {
+        this(new GitLabGrantedPermissions());
+        setDefaultPermissions();
+    }
+
+    /**
+     * Returns the granted permissions for the identities.
+     *
+     * @return the granted permissions
+     */
+    protected GitLabGrantedPermissions getGrantedPermissions() {
+        return grantedPermissions;
+    }
+
+    /**
+     * Gets the permission groups which are applicable for the ACL.
+     *
+     * @return an iterable collection of permission groups
+     */
+    public abstract Collection<PermissionGroup> getApplicablePermissionGroups();
+
+    /**
      * Checks if the given user has admin access on the Jenkins server.
-     * 
+     *
      * @param user the user
      * @return true is the user has admin access else false
      */
     protected abstract boolean isAdmin(GitLabUserDetails user);
+
+    /**
+     * Sets the default permission for the ACL.
+     */
+    protected abstract void setDefaultPermissions();
+
+    public List<GitLabPermissionIdentity> getPermissionIdentities(boolean getGitLabIdentities) {
+        return grantedPermissions.getPermissionIdentities(getGitLabIdentities);
+    }
 
     /**
      * Checks if the user is logged in and if the principal is a 

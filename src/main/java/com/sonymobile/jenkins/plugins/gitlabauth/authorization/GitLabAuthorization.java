@@ -33,6 +33,7 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabAbstractACL;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
@@ -41,7 +42,6 @@ import org.kohsuke.stapler.StaplerRequest;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
 import com.sonymobile.jenkins.plugins.gitlabauth.JenkinsAccessLevel;
-import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabAbstactACL;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabGlobalACL;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabGrantedPermissions;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity;
@@ -175,19 +175,6 @@ public class GitLabAuthorization extends AuthorizationStrategy {
         }
         return getRootACL();
     }
-    
-    /**
-     * Checks if the given GitLab identity has the given permission.
-     * 
-     * Mainly used to check if a checkbox should be checked or not on the config page.
-     * 
-     * @param identity   the identity
-     * @param permission the permission
-     * @return true if the given identity has the given permission
-     */
-    public boolean isPermissionSet(GitLabPermissionIdentity identity, Permission permission) {
-        return rootACL.isPermissionSet(identity, permission);
-    }
 
     @Extension
     public static class DescriptorImpl extends Descriptor<AuthorizationStrategy> {
@@ -244,40 +231,16 @@ public class GitLabAuthorization extends AuthorizationStrategy {
             
             return new GitLabAuthorization(adminUsernames, adminGroups, useGitLabAdmins, grantedPermissions);
         }
-        
+
         /**
-         * Returns a map of all permission groups and their permissions 
-         * except permission group Permission.
-         * 
-         * @return a map of permission groups and their respective permissions
-         */
-        public Map<PermissionGroup, List<Permission>> getAllPermissionGroups() {
-            List<PermissionGroup> groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
-            // Generic permissions, which we don't need
-            groups.remove(PermissionGroup.get(Permission.class));
-            
-            // Matrix with all permission groups and the permissions belonging to the permission group
-            SortedMap<PermissionGroup, List<Permission>> permissionMatrix = new TreeMap<PermissionGroup, List<Permission>>();
-            
-            for (PermissionGroup pg : groups) {
-                permissionMatrix.put(pg, new ArrayList<Permission>());
-                for (Permission p : pg.getPermissions()) {
-                    permissionMatrix.get(pg).add(p);
-                }
-            }
-            
-            return permissionMatrix;
-        }
-        
-        /**
-         * Gets a list of all permission identites configured to be used globally by Jenkins.
+         * Gets a list of all permission identities configured to be used globally by Jenkins.
          * 
          * @return a list of permission identities
          */
         public List<GitLabPermissionIdentity> getPermissionIdentities() {
             AuthorizationStrategy strategy = Jenkins.getInstance().getAuthorizationStrategy();
             if (strategy instanceof GitLabAuthorization) {
-                GitLabAbstactACL acl = (GitLabAbstactACL) strategy.getRootACL();
+                GitLabAbstractACL acl = (GitLabAbstractACL) strategy.getRootACL();
                 return acl.getPermissionIdentities(false);
             }
             return GitLabPermissionIdentity.getGlobalStaticPermissionIdentities(false);

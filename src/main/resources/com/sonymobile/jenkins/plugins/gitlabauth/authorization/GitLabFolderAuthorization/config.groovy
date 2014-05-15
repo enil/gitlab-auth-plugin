@@ -4,7 +4,10 @@ def f = namespace("/lib/form")
 def j = namespace("jelly:core")
 def st = namespace("jelly:stapler")
 
-def itemPermissionGroup = descriptor.itemPermissionGroup
+def acl = instance.ACL
+
+link(rel: "stylesheet", href: rootURL+"/plugin/gitlab-auth/table.css", type: "text/css")
+script(type: "text/javascript", src: rootURL+"/plugin/gitlab-auth/authorization.matrix.js")
 
 if (instance?.groupId) {
     f.section(title: "GitLab Group") {
@@ -26,9 +29,6 @@ if (instance?.groupId) {
     
     f.section(title: "GitLab Folder Authorization") {
         f.block {
-            link(rel: "stylesheet", href: rootURL+"/plugin/gitlab-auth/table.css", type: "text/css")
-            script(type: "text/javascript", src: rootURL+"/plugin/gitlab-auth/authorization.matrix.js")
-    
             table("class": "center-align global-matrix-authorization-strategy-table", name: "permissionTable", id: "permissionTable") {
                 tr {
                     td("class": "pane-header", rowspan: "2") {
@@ -36,39 +36,39 @@ if (instance?.groupId) {
                         br()
                         text("Role")
                     }
-                    
-                    td("class": "pane-header", colspan: itemPermissionGroup.permissions.size()) {
-                        text(itemPermissionGroup.title)
+
+                    acl.applicablePermissionGroups.each { permissionGroup ->
+                        td("class": "pane-header", colspan: permissionGroup.size()) {
+                            text(permissionGroup.title)
+                        }
                     }
                 }
-                
+
                 tr {
-                    itemPermissionGroup.each { permission ->
+                    acl.applicablePermissionGroups*.each { permission ->
                         td {
                             script(type: "text/javascript") {
                                 text('addItem("' + permission.id + '")')
                             }
-                            
-                            if (permission.enabled) {
-                                text(permission.name)
-                            } else {
+
+                            if (!permission.enabled) {
                                 i { text(permission.name) }
+                            } else {
+                                text(permission.name)
                             }
                         }
                     }
                 }
     
-                def identities = (instance != null) ? instance.folderPermissionIdentities : descriptor.staticPermissionIdentities
-                
-                identities.each { identity ->
+                instance.folderPermissionIdentities.each { identity ->
                     tr(name: identity) {
                         td {
                             text(identity.displayName)
                         }
-                        
-                        itemPermissionGroup.permissions.each { permission ->
+
+                        acl.applicablePermissionGroups*.each { permission ->
                             td {
-                                f.checkbox(name: "[${permission.id}]", checked: instance?.isPermissionSet(identity, permission))
+                                f.checkbox(name: "[${permission.id}]", checked: acl?.isPermissionSet(identity, permission))
                             }
                         }
                     }
