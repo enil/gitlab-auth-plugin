@@ -110,6 +110,17 @@ public class GitLab {
     }
 
     /**
+     * Gets all groups accessible to a user
+     *
+     * @param userId ID of the user
+     * @return a list of all groups
+     * @throws GitLabApiException if the connection against GitLab failed
+     */
+    public static List<GitLabGroupInfo> getGroupsAsUser(int userId) throws GitLabApiException {
+        return instance.getGroupsAsUser(userId);
+    }
+
+    /**
      * Gets a group.
      *
      * @param groupId ID of the group.
@@ -189,6 +200,9 @@ public class GitLab {
         /** A cache for storing groups. */
         private final LoadingCache<Any, GitLabGroupRegistry> cachedGroups;
 
+        /** A cache for storing the groups users can see. */
+        private final LoadingCache<Integer, GitLabGroupRegistry> cachedAccessibleGroups;
+
         /**
          * Creates a new standard implementation.
          */
@@ -212,8 +226,11 @@ public class GitLab {
             // cache group members with groupId -> map of userId -> user
             cachedGroupMemberships = cacheBuilder.build(new GroupMembershipsCacheLoader());
 
-            // cache groups with * -> list of groups (uses Any for keys since only one value is cached)
+            // cache groups with * -> groups registry (uses Any for keys since only one value is cached)
             cachedGroups = cacheBuilder.initialCapacity(1).build(new GroupsCacheLoader());
+
+            // cache groups with userId -> group registry with groups accessible to the user
+            cachedAccessibleGroups = cacheBuilder.build(new AccessibleGroupsCacheLoader());
         }
 
         /**
@@ -262,6 +279,23 @@ public class GitLab {
         public List<GitLabGroupInfo> getGroups() throws GitLabApiException {
             try {
                 return cachedGroups.get(Any.anyValue).asList();
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof GitLabApiException) {
+                    // throw any GitLabApiExceptions
+                    throw (GitLabApiException)e.getCause();
+                } else {
+                    // throw any other unexpected exceptions
+                    throw new RuntimeException(e.getCause());
+                }
+            }
+        }
+
+        /**
+         * @see GitLab#getGroupsAsUser(int)
+         */
+        public List<GitLabGroupInfo> getGroupsAsUser(int userId) throws GitLabApiException {
+            try {
+                return cachedAccessibleGroups.get(userId).asList();
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof GitLabApiException) {
                     // throw any GitLabApiExceptions
@@ -347,6 +381,14 @@ public class GitLab {
             public GitLabGroupRegistry load(Any key) throws Exception {
                 // load the groups and put them in a registry
                 return new GitLabGroupRegistry(getApiClient().getGroups());
+            }
+        }
+
+        private class AccessibleGroupsCacheLoader extends CacheLoader<Integer, GitLabGroupRegistry> {
+            @Override
+            public GitLabGroupRegistry load(Integer userId) throws Exception {
+                // load groups as the user
+                return new GitLabGroupRegistry(getApiClient().asUser(userId).getGroups());
             }
         }
 

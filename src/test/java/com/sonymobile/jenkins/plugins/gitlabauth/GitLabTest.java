@@ -261,6 +261,20 @@ public class GitLabTest {
     }
 
     @Test
+    public void getGroupsAsUser() throws Exception {
+        expect(mockApiClient.asUser(1)).andReturn(mockApiClient);
+        expect(mockApiClient.getGroups()).andReturn(loadGroups());
+        replay(mockApiClient);
+
+        List<GitLabGroupInfo> groups = GitLab.getGroupsAsUser(1);
+
+        GitLabGroupInfo group = groups.get(0);
+        assertThat(1, is(group.getId()));
+
+        verify(mockApiClient);
+    }
+
+    @Test
     public void cachedGetGroups() throws Exception {
         // before cache invalidation
         {
