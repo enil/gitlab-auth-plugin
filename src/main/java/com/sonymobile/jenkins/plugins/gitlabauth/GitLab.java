@@ -44,6 +44,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * An interface to a GitLab server.
  *
@@ -198,10 +200,7 @@ public class GitLab {
         private final LoadingCache<Integer, Map<Integer, GitLabGroupMemberInfo>> cachedGroupMemberships;
 
         /** A cache for storing groups. */
-        private final LoadingCache<Any, GitLabGroupRegistry> cachedGroups;
-
-        /** A cache for storing the groups users can see. */
-        private final LoadingCache<Integer, GitLabGroupRegistry> cachedAccessibleGroups;
+        private final LoadingCache<Integer, GitLabGroupRegistry> cachedGroups;
 
         /**
          * Creates a new standard implementation.
@@ -226,11 +225,8 @@ public class GitLab {
             // cache group members with groupId -> map of userId -> user
             cachedGroupMemberships = cacheBuilder.build(new GroupMembershipsCacheLoader());
 
-            // cache groups with * -> groups registry (uses Any for keys since only one value is cached)
-            cachedGroups = cacheBuilder.initialCapacity(1).build(new GroupsCacheLoader());
-
-            // cache groups with userId -> group registry with groups accessible to the user
-            cachedAccessibleGroups = cacheBuilder.build(new AccessibleGroupsCacheLoader());
+            // cache groups with user ID -> groups registry (user ID 0 for all users)
+            cachedGroups = cacheBuilder.build(new GroupsCacheLoader());
         }
 
         /**
@@ -278,7 +274,8 @@ public class GitLab {
          */
         public List<GitLabGroupInfo> getGroups() throws GitLabApiException {
             try {
-                return cachedGroups.get(Any.anyValue).asList();
+                // user ID for all users
+                return cachedGroups.get(0).asList();
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof GitLabApiException) {
                     // throw any GitLabApiExceptions
@@ -295,7 +292,8 @@ public class GitLab {
          */
         public List<GitLabGroupInfo> getGroupsAsUser(int userId) throws GitLabApiException {
             try {
-                return cachedAccessibleGroups.get(userId).asList();
+                checkArgument(userId > 0, "User ID must be positive");
+                return cachedGroups.get(userId).asList();
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof GitLabApiException) {
                     // throw any GitLabApiExceptions
@@ -313,7 +311,7 @@ public class GitLab {
         public GitLabGroupInfo getGroup(int groupId) throws GitLabApiException {
             try {
                 // get group by group ID or null if not found
-                return cachedGroups.get(Any.anyValue).getById(groupId);
+                return cachedGroups.get(0).getById(groupId);
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof GitLabApiException) {
                     // throw any GitLabApiExceptions
@@ -331,7 +329,7 @@ public class GitLab {
         public GitLabGroupInfo getGroupByPath(String path) throws GitLabApiException {
             try {
                 // get group by path or null if not found
-                return cachedGroups.get(Any.anyValue).getByPath(path);
+                return cachedGroups.get(0).getByPath(path);
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof GitLabApiException) {
                     // throw any GitLabApiExceptions
@@ -376,19 +374,20 @@ public class GitLab {
         /**
          * Cache loader for getting groups from the API.
          */
-        private class GroupsCacheLoader extends CacheLoader<Any, GitLabGroupRegistry> {
-            @Override
-            public GitLabGroupRegistry load(Any key) throws Exception {
-                // load the groups and put them in a registry
-                return new GitLabGroupRegistry(getApiClient().getGroups());
-            }
-        }
-
-        private class AccessibleGroupsCacheLoader extends CacheLoader<Integer, GitLabGroupRegistry> {
+        private class GroupsCacheLoader extends CacheLoader<Integer, GitLabGroupRegistry> {
             @Override
             public GitLabGroupRegistry load(Integer userId) throws Exception {
-                // load groups as the user
-                return new GitLabGroupRegistry(getApiClient().asUser(userId).getGroups());
+                final List<GitLabGroupInfo> groups;
+                if (userId == 0) {
+                    // store all groups for user ID 0
+                    groups = getApiClient().getGroups();
+                } else {
+                    // store groups accessible to only the user
+                    groups = getApiClient().asUser(userId).getGroups();
+                }
+
+                // load the groups and put them in a registry
+                return new GitLabGroupRegistry(groups);
             }
         }
 
@@ -399,22 +398,6 @@ public class GitLab {
          */
         private GitLabApiClient getApiClient() {
             return GitLabConfiguration.getApiClient();
-        }
-
-        /**
-         * Used as a generic type where the value doesn't matter.
-         */
-        private static class Any {
-            /** The only instance of the type. */
-            public static final Any anyValue = new Any();
-
-            private Any() { /* empty */ }
-
-            @Override
-            public int hashCode() { return 1; }
-
-            @Override
-            public boolean equals(Object other) { return other instanceof Any; }
         }
     }
 }
