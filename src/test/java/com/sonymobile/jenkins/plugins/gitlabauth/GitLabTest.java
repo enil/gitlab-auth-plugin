@@ -356,12 +356,26 @@ public class GitLabTest {
     }
 
     @Test
+    public void isGroupOwner() throws Exception {
+        // user 1 is a developer, user 2 is a guest and user 3 is an owner
+        expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).anyTimes();
+        replay(mockApiClient);
+
+        assertThat(GitLab.isGroupOwner(/* userId */ 1, /* groupId */ 1), is(false));
+        assertThat(GitLab.isGroupOwner(/* userId */ 2, /* groupId */ 1), is(false));
+        assertThat(GitLab.isGroupOwner(/* userId */ 3, /* groupId */ 1), is(true));
+
+        verify(mockApiClient);
+    }
+
+    @Test
     public void getAccessLevelInGroup() throws Exception {
         expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).anyTimes();
         replay(mockApiClient);
 
-        // user 1 is an developer, user 1000 isn't member of the group
+        // user 1 is an developer, user 2 is a guest and user 1000 isn't member of the group
         assertThat(GitLab.getAccessLevelInGroup(/* userId */ 1, /* groupId */ 1), is(GitLabAccessLevel.DEVELOPER));
+        assertThat(GitLab.getAccessLevelInGroup(/* userId */ 2, /* groupId */ 1), is(GitLabAccessLevel.GUEST));
         assertThat(GitLab.getAccessLevelInGroup(/* userId */ 1000, /* groupId */ 1), is(GitLabAccessLevel.NONE));
 
         verify(mockApiClient);

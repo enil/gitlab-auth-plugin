@@ -158,6 +158,18 @@ public class GitLab {
     }
 
     /**
+     * Gets whether a user is an owner of a group.
+     *
+     * @param userId  ID of the user
+     * @param groupId ID of the group
+     * @return true if the user is an owner of the group
+     * @throws GitLabApiException if the connection against GitLab failed
+     */
+    public static boolean isGroupOwner(int userId, int groupId) throws GitLabApiException {
+        return getAccessLevelInGroup(userId, groupId) == GitLabAccessLevel.OWNER;
+    }
+
+    /**
      * Get access level for a member in a group.
      *
      * @param userId  ID of the member
