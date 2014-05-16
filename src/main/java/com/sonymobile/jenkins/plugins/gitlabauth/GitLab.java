@@ -38,7 +38,9 @@ import com.sonymobile.gitlab.model.GitLabGroupMemberInfo;
 import com.sonymobile.gitlab.model.GitLabUserInfo;
 import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfiguration;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -120,6 +122,29 @@ public class GitLab {
      */
     public static List<GitLabGroupInfo> getGroupsAsUser(int userId) throws GitLabApiException {
         return instance.getGroupsAsUser(userId);
+    }
+
+
+    /**
+     * Gets all groups owned by a user
+     *
+     * @param userId ID of the user
+     * @return a list of all groups
+     * @throws GitLabApiException if the connection against GitLab failed
+     */
+    public static List<GitLabGroupInfo> getGroupsOwnedByUser(int userId) throws GitLabApiException {
+        List<GitLabGroupInfo> groups = new ArrayList<GitLabGroupInfo>(getGroupsAsUser(userId));
+        Iterator<GitLabGroupInfo> iterator = groups.iterator();
+
+        // filter groups where the user isn't the owner
+        while (iterator.hasNext()) {
+            int groupId = iterator.next().getId();
+            if (!isGroupOwner(userId, groupId)) {
+                iterator.remove();
+            }
+        }
+
+        return groups;
     }
 
     /**

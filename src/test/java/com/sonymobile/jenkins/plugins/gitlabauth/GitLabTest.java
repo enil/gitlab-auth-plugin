@@ -54,6 +54,7 @@ import static org.easymock.EasyMock.expect;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
 import static org.powermock.api.easymock.PowerMock.createMock;
@@ -336,6 +337,24 @@ public class GitLabTest {
         assertThat(1, is(group.getId()));
 
         assertThat("Group should not exist", GitLab.getGroupByPath("notreal"), is(nullValue()));
+
+        verify(mockApiClient);
+    }
+
+    @Test
+    public void getGroupsOwnedByUser() throws Exception {
+        // should impersonate as each of the users
+        expect(mockApiClient.asUser(1)).andReturn(mockApiClient);
+        expect(mockApiClient.asUser(2)).andReturn(mockApiClient);
+        expect(mockApiClient.asUser(3)).andReturn(mockApiClient);
+        expect(mockApiClient.getGroups()).andReturn(loadGroups()).anyTimes();
+        expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).anyTimes();
+        replay(mockApiClient);
+
+        // only user 3 is an owner of the group
+        assertThat(GitLab.getGroupsOwnedByUser(1), is(empty()));
+        assertThat(GitLab.getGroupsOwnedByUser(2), is(empty()));
+        assertThat(GitLab.getGroupsOwnedByUser(3), hasSize(1));
 
         verify(mockApiClient);
     }
