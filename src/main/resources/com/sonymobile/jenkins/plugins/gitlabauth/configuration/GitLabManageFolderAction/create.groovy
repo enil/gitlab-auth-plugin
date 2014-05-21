@@ -25,6 +25,49 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth.configuration.GitLabManageFolderAction
 
+def l = namespace("/lib/layout")
+def f = namespace("/lib/form")
 def st = namespace("jelly:stapler")
 
-st.include(page: "existing.groovy")
+l.layout(title: "Create a New GitLab Folder", permission: app.READ, norefresh: "true") {
+    st.include(page: "sidepanel.groovy")
+    l.main_panel() {
+        h1 {
+            text(my.displayName);
+        }
+        table(id: "Test", "class": "sortable pane bigtable") {
+            tr(style: "text-align:left") {
+                th(width: "10px")
+                
+                th(width: "400px") {
+                    text("Group name")
+                }
+                th(width: "100px") {
+                    text("Group role")
+                }
+                th {
+                    text("Group path")
+                }
+            }
+            tr {
+                td {
+                    input(type: "checkbox")
+                }
+                td {
+                    img(src: imagesURL+"/32x32/folder.png", width: "32px", height: "32px", style: "padding-right: 10px")
+                    text("Test")
+                }
+                td {
+                    text("Test")
+                }
+                td {
+                    text("Test")
+                }
+            }
+        }
+        div("class": "bottom-sticker-edge")
+        div("class": "bottom-sticker-inner") {
+            input(type: "button", value: "Create Marked Folders")
+        }
+    }
+}

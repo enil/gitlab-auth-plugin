@@ -23,41 +23,42 @@
  * THE SOFTWARE.
  */
 
-package com.sonymobile.jenkins.plugins.gitlabauth.configuration;
+package com.sonymobile.jenkins.plugins.gitlabauth.configuration.GitLabManageFolderAction
 
-import hudson.Extension;
-import hudson.model.RootAction;
-
-/**
- * Used to access the GitLab folder management page.
- * 
- * @author Andreas Alanko
- */
-@Extension
-public class GitLabManageFolderAction implements RootAction {
-
-    /**
-     * The icon used in the side menu bar.
-     */
-    @Override
-    public String getIconFileName() {
-        return "setting.png";
+def l = namespace("/lib/layout")
+def f = namespace("/lib/form")
+def st = namespace("jelly:stapler")
+ 
+l.layout(title: "Existing GitLab Folders", permission: app.READ, norefresh: "true") {
+    st.include(page: "sidepanel.groovy")
+    l.main_panel() {
+        h1 {
+            text(my.displayName);
+        }
+        table(id: "Test", "class": "sortable pane bigtable") {
+            tr(style: "text-align:left") {
+                th(width: "400px") {
+                    text("Group name")
+                }
+                th(width: "100px") {
+                    text("Group role")
+                }
+                th {
+                    text("Group path")
+                }
+            }
+            tr {
+                td {
+                    img(src: imagesURL+"/32x32/folder.png", width: "32px", height: "32px", style: "padding-right: 10px")
+                    text("Test")
+                }
+                td {
+                    text("Test")
+                }
+                td {
+                    text("Test")
+                }
+            }
+        }
     }
-
-    /**
-     * The display name linked to this RootAction.
-     */
-    @Override
-    public String getDisplayName() {
-        return "GitLab Folders";
-    }
-
-    /**
-     * The URL name used to accessed the index.groovy file
-     * linked with this RootAction.
-     */
-    @Override
-    public String getUrlName() {
-        return "manage-folders";
-    }
-} 
+}

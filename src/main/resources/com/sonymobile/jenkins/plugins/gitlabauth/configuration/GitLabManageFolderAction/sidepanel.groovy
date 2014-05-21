@@ -23,14 +23,14 @@
  * THE SOFTWARE.
  */
 
-package com.sonymobile.jenkins.plugins.gitlabauth.configuration
+package com.sonymobile.jenkins.plugins.gitlabauth.configuration.GitLabManageFolderAction
 
 def l = namespace("/lib/layout")
-def f = namespace("/lib/form")
-def st = namespace("jelly:stapler")
 
 l."side-panel"() {
     l.tasks() {
-        l.task(title: "Test Panel")
+        l.task(title: "Back to Dashboard", icon: "images/24x24/up.png", href: rootURL+"/")
+        l.task(title: "Create folders", icon: "images/24x24/new-document.png", href: "create")
+        l.task(title: "Existing folders", icon: "images/24x24/folder.png", href: "existing")
     }
 }
