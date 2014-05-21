@@ -29,11 +29,11 @@ def l = namespace("/lib/layout")
 def f = namespace("/lib/form")
 def st = namespace("jelly:stapler")
  
-l.layout(title: "Existing GitLab Folders", permission: app.READ, norefresh: "true") {
+l.layout(title: "Existing GitLag Folders", permission: app.READ, norefresh: "true") {
     st.include(page: "sidepanel.groovy")
     l.main_panel() {
         h1 {
-            text(my.displayName);
+            text("Existing GitLab Folders");
         }
         table(id: "Test", "class": "sortable pane bigtable") {
             tr(style: "text-align:left") {
@@ -50,13 +50,13 @@ l.layout(title: "Existing GitLab Folders", permission: app.READ, norefresh: "tru
             tr {
                 td {
                     img(src: imagesURL+"/32x32/folder.png", width: "32px", height: "32px", style: "padding-right: 10px")
-                    text("Test")
+                    text("Test group")
                 }
                 td {
-                    text("Test")
+                    text("owner")
                 }
                 td {
-                    text("Test")
+                    text("testgroup")
                 }
             }
         }

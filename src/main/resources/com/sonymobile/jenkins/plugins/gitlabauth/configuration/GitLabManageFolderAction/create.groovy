@@ -29,45 +29,47 @@ def l = namespace("/lib/layout")
 def f = namespace("/lib/form")
 def st = namespace("jelly:stapler")
 
-l.layout(title: "Create a New GitLab Folder", permission: app.READ, norefresh: "true") {
+l.layout(title: "Create a new GitLab Folder", permission: app.READ, norefresh: "true") {
     st.include(page: "sidepanel.groovy")
     l.main_panel() {
         h1 {
-            text(my.displayName);
+            text("Create a new GitLab Folder");
         }
-        table(id: "Test", "class": "sortable pane bigtable") {
-            tr(style: "text-align:left") {
-                th(width: "10px")
-                
-                th(width: "400px") {
-                    text("Group name")
+        form(method: "POST", name: "createFolders", action: "createFolders") {
+            table(id: "Test", "class": "sortable pane bigtable") {
+                tr(style: "text-align:left") {
+                    th(width: "10px")
+                    
+                    th(width: "400px") {
+                        text("Group name")
+                    }
+                    th(width: "100px") {
+                        text("Group role")
+                    }
+                    th {
+                        text("Group path")
+                    }
                 }
-                th(width: "100px") {
-                    text("Group role")
-                }
-                th {
-                    text("Group path")
+                tr {
+                    td {
+                        input(type: "checkbox", name: "2")
+                    }
+                    td {
+                        img(src: imagesURL+"/32x32/folder.png", width: "32px", height: "32px", style: "padding-right: 10px")
+                        text("Other test group")
+                    }
+                    td {
+                        text("owner")
+                    }
+                    td {
+                        text("othertestgroup")
+                    }
                 }
             }
-            tr {
-                td {
-                    input(type: "checkbox")
-                }
-                td {
-                    img(src: imagesURL+"/32x32/folder.png", width: "32px", height: "32px", style: "padding-right: 10px")
-                    text("Test")
-                }
-                td {
-                    text("Test")
-                }
-                td {
-                    text("Test")
-                }
+            div("class": "bottom-sticker-edge")
+            div("class": "bottom-sticker-inner") {
+                input(type: "submit", value: "Create marked folders")
             }
-        }
-        div("class": "bottom-sticker-edge")
-        div("class": "bottom-sticker-inner") {
-            input(type: "button", value: "Create Marked Folders")
         }
     }
 }
