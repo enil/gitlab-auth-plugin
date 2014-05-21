@@ -28,8 +28,9 @@ package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfiguration;
+import com.sonymobile.jenkins.plugins.gitlabauth.time.Interval;
 import hudson.Extension;
-import hudson.model.PeriodicWork;
+import hudson.model.AperiodicWork;
 import hudson.model.TopLevelItemDescriptor;
 import jenkins.model.Jenkins;
 
@@ -42,41 +43,33 @@ import java.util.logging.Logger;
  * @author Emil Nilsson
  */
 @Extension
-public class PeriodicGitLabFolderSynchronization extends PeriodicWork {
-    /** The default value for {@link #periodDuration}. */
-    private static final long DEFAULT_PERIOD_DURATION = 10;
-
-    /** The default value for {@link #periodUnit}. */
-    private static final TimeUnit DEFAULT_PERIOD_UNIT = TimeUnit.MINUTES;
+public final class PeriodicGitLabFolderSynchronization extends AperiodicWork {
+    /** The default duration between synchronizations. */
+    private static final Interval DEFAULT_PERIOD_DURATION = new Interval(10, TimeUnit.MINUTES);
 
     /** The synchronizer creating folders from GitLab groups. */
     private final GitLabFolderSynchronizer synchronizer;
 
     /** The duration between synchronizations. */
-    private final long periodDuration;
-
-    /** The unit of the duration between synchronizations. */
-    private final TimeUnit periodUnit;
+    private Interval periodDuration;
 
     /** The logger for the class. */
     private final Logger LOGGER = Logger.getLogger(GitLabFolderSynchronizer.class.getName());
 
     /**
-     * Creates a periodic folder synchronization with the default period.
+     * Creates a periodic folder synchronization with the default duration.
      */
     public PeriodicGitLabFolderSynchronization() {
-        this(DEFAULT_PERIOD_DURATION, DEFAULT_PERIOD_UNIT);
+        this(DEFAULT_PERIOD_DURATION);
     }
 
     /**
      * Creates a periodic folder synchronization.
      *
      * @param periodDuration the duration between synchronizations
-     * @param periodUnit     the unit of the duration
      */
-    public PeriodicGitLabFolderSynchronization(long periodDuration, TimeUnit periodUnit) {
+    public PeriodicGitLabFolderSynchronization(Interval periodDuration) {
         this.periodDuration = periodDuration;
-        this.periodUnit = periodUnit;
 
         // Jenkins instance to create folders in
         Jenkins jenkins = Jenkins.getInstance();
@@ -107,23 +100,32 @@ public class PeriodicGitLabFolderSynchronization extends PeriodicWork {
     @Override
     public long getRecurrencePeriod() {
         // duration has to be in ms
-        return periodUnit.toMillis(periodDuration);
+        return periodDuration.toMilliseconds();
     }
 
     @Override
-    protected void doRun() throws Exception {
-        if (!synchronize()) {
-            LOGGER.warning("Cannot synchronize GitLabFolders: GitLab not configured. Retrying in "
-                    + periodDurationAsString());
+    public AperiodicWork getNewInstance() {
+        return new PeriodicGitLabFolderSynchronization(getPeriodDuration());
+    }
+
+    @Override
+    protected void doAperiodicRun() {
+        try {
+            if (!synchronize()) {
+                LOGGER.warning("Cannot synchronize GitLab folders: GitLab not configured. Retrying in " +
+                        periodDuration);
+            }
+        } catch (GitLabApiException e) {
+            LOGGER.severe("Synchronization of GitLab folders failed: " + e.getMessage());
         }
     }
 
     /**
-     * Creates a string representation of the period duration.
+     * Gets the duration between synchronizations.
      *
-     * @return the string
+     * @return the duration
      */
-    private String periodDurationAsString() {
-        return String.format("%d %s", periodDuration, periodUnit.toString().toLowerCase());
+    private synchronized Interval getPeriodDuration() {
+        return periodDuration;
     }
 }
