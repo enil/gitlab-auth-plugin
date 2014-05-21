@@ -96,7 +96,10 @@ public class GitLabManageFolderAction implements RootAction {
         for (Entry<String, Object> groupSet : formData.entrySet()) {
             if (groupSet.getValue().equals(true)) {
                 try {
-                    groupList.add(GitLab.getGroup(Integer.parseInt(groupSet.getKey())));
+                    GitLabGroupInfo group = GitLab.getGroup(Integer.parseInt(groupSet.getKey()));
+                    if(group != null) {
+                        groupList.add(group);
+                    }
                 } catch (NumberFormatException e) {
                     e.printStackTrace();
                 } catch (GitLabApiException e) {
