@@ -37,12 +37,10 @@ import hudson.security.PermissionGroup;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.logging.Logger;
 
-import static java.util.Collections.*;
+import static java.util.Arrays.asList;
 
 /**
  * Folder ACL for GitLab.
@@ -78,11 +76,7 @@ public class GitLabFolderACL extends GitLabAbstractACL {
 
     @Override
     public Collection<PermissionGroup> getApplicablePermissionGroups() {
-        List<PermissionGroup> permissionGroups = new ArrayList<PermissionGroup>(2);
-        permissionGroups.add(PermissionGroup.get(Item.class));
-        permissionGroups.add(PermissionGroup.get(View.class));
-
-        return permissionGroups;
+        return asList(PermissionGroup.get(Item.class), PermissionGroup.get(View.class));
     }
 
     /**
@@ -161,7 +155,7 @@ public class GitLabFolderACL extends GitLabAbstractACL {
     private boolean hasGlobalPermission(Authentication auth, Permission permission) {
         GitLabAuthorization authorization = getGitLabAuthorization();
         if (authorization != null) {
-            return ((GitLabGlobalACL) authorization.getRootACL()).hasPermission(auth, permission);
+            return (authorization.getRootACL()).hasPermission(auth, permission);
         }
         return false;
     }

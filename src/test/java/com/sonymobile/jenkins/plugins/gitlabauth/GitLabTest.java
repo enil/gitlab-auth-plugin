@@ -54,6 +54,7 @@ import static org.easymock.EasyMock.expect;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
 import static org.powermock.api.easymock.PowerMock.createMock;
@@ -261,6 +262,20 @@ public class GitLabTest {
     }
 
     @Test
+    public void getGroupsAsUser() throws Exception {
+        expect(mockApiClient.asUser(1)).andReturn(mockApiClient);
+        expect(mockApiClient.getGroups()).andReturn(loadGroups());
+        replay(mockApiClient);
+
+        List<GitLabGroupInfo> groups = GitLab.getGroupsAsUser(1);
+
+        GitLabGroupInfo group = groups.get(0);
+        assertThat(1, is(group.getId()));
+
+        verify(mockApiClient);
+    }
+
+    @Test
     public void cachedGetGroups() throws Exception {
         // before cache invalidation
         {
@@ -327,6 +342,24 @@ public class GitLabTest {
     }
 
     @Test
+    public void getGroupsOwnedByUser() throws Exception {
+        // should impersonate as each of the users
+        expect(mockApiClient.asUser(1)).andReturn(mockApiClient);
+        expect(mockApiClient.asUser(2)).andReturn(mockApiClient);
+        expect(mockApiClient.asUser(3)).andReturn(mockApiClient);
+        expect(mockApiClient.getGroups()).andReturn(loadGroups()).anyTimes();
+        expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).anyTimes();
+        replay(mockApiClient);
+
+        // only user 3 is an owner of the group
+        assertThat(GitLab.getGroupsOwnedByUser(1), is(empty()));
+        assertThat(GitLab.getGroupsOwnedByUser(2), is(empty()));
+        assertThat(GitLab.getGroupsOwnedByUser(3), hasSize(1));
+
+        verify(mockApiClient);
+    }
+
+    @Test
     public void isAdmin() throws Exception {
         // user 1 is an admin, user 2 is not, user 1000 doesn't exist
         expect(mockApiClient.getUser(1)).andReturn(loadAdminUser());
@@ -342,12 +375,26 @@ public class GitLabTest {
     }
 
     @Test
+    public void isGroupOwner() throws Exception {
+        // user 1 is a developer, user 2 is a guest and user 3 is an owner
+        expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).anyTimes();
+        replay(mockApiClient);
+
+        assertThat(GitLab.isGroupOwner(/* userId */ 1, /* groupId */ 1), is(false));
+        assertThat(GitLab.isGroupOwner(/* userId */ 2, /* groupId */ 1), is(false));
+        assertThat(GitLab.isGroupOwner(/* userId */ 3, /* groupId */ 1), is(true));
+
+        verify(mockApiClient);
+    }
+
+    @Test
     public void getAccessLevelInGroup() throws Exception {
         expect(mockApiClient.getGroupMembers(1)).andReturn(loadGroupMembers(1)).anyTimes();
         replay(mockApiClient);
 
-        // user 1 is an developer, user 1000 isn't member of the group
+        // user 1 is an developer, user 2 is a guest and user 1000 isn't member of the group
         assertThat(GitLab.getAccessLevelInGroup(/* userId */ 1, /* groupId */ 1), is(GitLabAccessLevel.DEVELOPER));
+        assertThat(GitLab.getAccessLevelInGroup(/* userId */ 2, /* groupId */ 1), is(GitLabAccessLevel.GUEST));
         assertThat(GitLab.getAccessLevelInGroup(/* userId */ 1000, /* groupId */ 1), is(GitLabAccessLevel.NONE));
 
         verify(mockApiClient);
