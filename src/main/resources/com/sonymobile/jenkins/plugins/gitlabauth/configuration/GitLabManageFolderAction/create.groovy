@@ -29,6 +29,8 @@ def l = namespace("/lib/layout")
 def f = namespace("/lib/form")
 def st = namespace("jelly:stapler")
 
+script(type: "text/javascript", src: rootURL+"/plugin/gitlab-auth/managefolders.js")
+
 l.layout(title: "Create a new GitLab Folder", permission: app.READ, norefresh: "true") {
     st.include(page: "sidepanel.groovy")
     l.main_panel() {
@@ -68,6 +70,7 @@ l.layout(title: "Create a new GitLab Folder", permission: app.READ, norefresh: "
             }
             div("class": "bottom-sticker-edge")
             div("class": "bottom-sticker-inner") {
+                input(type: "button", value: "Select all", onClick: "selectAll()")
                 input(type: "submit", value: "Create marked folders")
             }
         }
