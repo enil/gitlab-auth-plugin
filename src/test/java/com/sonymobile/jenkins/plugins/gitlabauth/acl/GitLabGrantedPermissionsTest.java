@@ -36,7 +36,7 @@ import org.junit.Test;
 import hudson.security.Permission;
 
 /**
- * Test class for {@link GitLabFolderCreator}. a
+ * Test class for {@link GitLabGrantedPermissions}.
  * 
  * @author Andreas Alanko
  */
