@@ -27,6 +27,7 @@ package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
+import com.sonymobile.jenkins.plugins.gitlabauth.GroupFolderInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
 import com.sonymobile.jenkins.plugins.gitlabauth.exceptions.ItemNameCollisionException;
 import hudson.model.TopLevelItem;
@@ -122,7 +123,7 @@ public class GroupFolderManagerTest {
                 freeStyleProject("item"));
         replay(itemGroup);
 
-        Map<Integer, Folder> existingFolders = folderManager.getFolders();
+        Map<Integer, GroupFolderInfo> existingFolders = folderManager.getFolders();
 
         verify(itemGroup);
 
@@ -130,8 +131,8 @@ public class GroupFolderManagerTest {
         assertThat("GitLab folder not matched", existingFolders, hasKey(1));
         assertThat("GitLab folder not matched", existingFolders, hasKey(2));
 
-        assertThat(existingFolders.get(1).getName(), is("group1"));
-        assertThat(existingFolders.get(2).getName(), is("group2"));
+        assertThat(existingFolders.get(1).getGroupId(), is(1));
+        assertThat(existingFolders.get(2).getGroupId(), is(2));
     }
 
     /**

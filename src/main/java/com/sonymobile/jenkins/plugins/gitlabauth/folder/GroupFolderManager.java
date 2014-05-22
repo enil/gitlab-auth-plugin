@@ -27,6 +27,7 @@ package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
+import com.sonymobile.jenkins.plugins.gitlabauth.GroupFolderInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
 import com.sonymobile.jenkins.plugins.gitlabauth.exceptions.ItemNameCollisionException;
 import hudson.model.TopLevelItem;
@@ -90,8 +91,8 @@ public class GroupFolderManager {
      *
      * @return a map of group IDs and folders
      */
-    public synchronized Map<Integer, Folder> getFolders() {
-        Map<Integer, Folder> existingFolders = new TreeMap<Integer, Folder>();
+    public synchronized Map<Integer, GroupFolderInfo> getFolders() {
+        Map<Integer, GroupFolderInfo> existingFolders = new TreeMap<Integer, GroupFolderInfo>();
 
         for (final TopLevelItem item : itemGroup.getItems()) {
             if (item instanceof Folder) {
@@ -100,7 +101,7 @@ public class GroupFolderManager {
 
                 // make sure the GitLab authorization property is set folder
                 if (property != null) {
-                    existingFolders.put(property.getGroupId(), folder);
+                    existingFolders.put(property.getGroupId(), new GroupFolderInfo(property));
                 }
             }
         }
@@ -120,7 +121,7 @@ public class GroupFolderManager {
     public synchronized void createFolders(Iterable<GitLabGroupInfo> groups)
             throws ItemNameCollisionException, IOException {
         // get existing group folders
-        Map<Integer, Folder> existingFolders = getFolders();
+        Map<Integer, GroupFolderInfo> existingFolders = getFolders();
 
         // groups which item names collide with existing items
         List<String> collidedGroupPaths = new LinkedList<String>();
@@ -199,9 +200,11 @@ public class GroupFolderManager {
     /**
      * Gets the descriptor of {@link com.cloudbees.hudson.plugins.folder.Folder}
      *
-     * @return the descriptor
+     * @return the descriptor or null if Jenkins can't be accessed
      */
     private static TopLevelItemDescriptor getFolderDescriptor() {
-        return getJenkinsInstance().getDescriptorByType(Folder.DescriptorImpl.class);
+        Jenkins jenkins = getJenkinsInstance();
+
+        return jenkins != null ? jenkins.getDescriptorByType(Folder.DescriptorImpl.class) : null;
     }
 }
