@@ -27,6 +27,7 @@ package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
+import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.GroupFolderInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
 import com.sonymobile.jenkins.plugins.gitlabauth.exceptions.ItemNameCollisionException;
@@ -56,21 +57,24 @@ import static java.util.Arrays.asList;
 import static org.apache.commons.lang.StringUtils.EMPTY;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.hasKey;
 import static org.junit.Assert.assertThat;
+import static org.powermock.api.easymock.PowerMock.mockStatic;
+import static org.powermock.api.easymock.PowerMock.replay;
+import static org.powermock.api.easymock.PowerMock.verify;
+
 
 /**
- * Tests for {@link GroupFolderManager}
+ * Tests for {@link GroupFolderManager}.
  *
  * @author Emil Nilsson
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ GitLabFolderAuthorization.class, GroupFolderManager.class })
+@PrepareForTest({ GitLabFolderAuthorization.class, GroupFolderManager.class, GitLab.class })
 public class GroupFolderManagerTest {
     /** A rule for catching expected exceptions. */
     @Rule
@@ -103,6 +107,8 @@ public class GroupFolderManagerTest {
         // mock creating new GitLabFolderAuthorization folder properties
         expectNewFolderAuthorization();
 
+        mockStatic(GitLab.class);
+
         // create a folder manager with the mock item group and folder descriptor
         folderManager = Whitebox.invokeConstructor(
                 GroupFolderManager.class,
@@ -133,6 +139,34 @@ public class GroupFolderManagerTest {
 
         assertThat(existingFolders.get(1).getGroupId(), is(1));
         assertThat(existingFolders.get(2).getGroupId(), is(2));
+    }
+
+    /**
+     * Tests getting existing GitLab group folders owned by a user.
+     */
+    @Test
+    public void getFoldersOwnedByUser() throws Exception {
+        // two GitLab folder and two misc items
+        addItems(
+                gitLabFolder("group1", 1),
+                gitLabFolder("group2", 2),
+                folder("folder"),
+                freeStyleProject("item"));
+
+        // user 1 is owner of group1 but not group2
+        expect(GitLab.isGroupOwner(1, 1)).andReturn(true);
+        expect(GitLab.isGroupOwner(1, 2)).andReturn(false);
+        replay(itemGroup, GitLab.class);
+
+        Map<Integer, GroupFolderInfo> existingFolders = folderManager.getFoldersOwnedByUser(1);
+
+        verify(itemGroup, GitLab.class);
+
+        assertThat(existingFolders.size(), is(1));
+        assertThat("GitLab folder not matched", existingFolders, hasKey(1));
+        assertThat("GitLab folder matched", existingFolders, not(hasKey(2)));
+
+        assertThat(existingFolders.get(1).getGroupId(), is(1));
     }
 
     /**

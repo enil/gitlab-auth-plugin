@@ -26,7 +26,9 @@
 package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
+import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
+import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.GroupFolderInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
 import com.sonymobile.jenkins.plugins.gitlabauth.exceptions.ItemNameCollisionException;
@@ -36,7 +38,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.ModifiableTopLevelItemGroup;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -107,6 +109,28 @@ public class GroupFolderManager {
         }
 
         return existingFolders;
+    }
+
+    /**
+     * Returns all GitLab folders owned by a user
+     *
+     * @param userId the user ID of the user
+     * @return a map of group IDs and folders
+     * @throws GitLabApiException if the connection against GitLab failed
+     */
+    public synchronized Map<Integer, GroupFolderInfo> getFoldersOwnedByUser(int userId) throws GitLabApiException {
+        // get all folders
+        Map<Integer, GroupFolderInfo> folders = getFolders();
+
+        Iterator<Map.Entry<Integer, GroupFolderInfo>> iterator = folders.entrySet().iterator();
+        while (iterator.hasNext()) {
+            // delete folders where the user isn't an owner
+            int groupId = iterator.next().getKey();
+            if (!GitLab.isGroupOwner(userId, groupId)) {
+                iterator.remove();
+            }
+        }
+        return folders;
     }
 
     /**
