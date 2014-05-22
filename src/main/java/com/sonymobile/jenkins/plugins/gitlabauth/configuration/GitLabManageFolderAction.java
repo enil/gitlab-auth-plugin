@@ -57,7 +57,6 @@ public class GitLabManageFolderAction implements RootAction {
     /**
      * The icon used in the side menu bar.
      */
-    @Override
     public String getIconFileName() {
         return "folder.png";
     }
@@ -65,7 +64,6 @@ public class GitLabManageFolderAction implements RootAction {
     /**
      * The display name linked to this RootAction.
      */
-    @Override
     public String getDisplayName() {
         return "GitLab Folders";
     }
@@ -74,7 +72,6 @@ public class GitLabManageFolderAction implements RootAction {
      * The URL name used to accessed the index.groovy file
      * linked with this RootAction.
      */
-    @Override
     public String getUrlName() {
         return "manage-folders";
     }

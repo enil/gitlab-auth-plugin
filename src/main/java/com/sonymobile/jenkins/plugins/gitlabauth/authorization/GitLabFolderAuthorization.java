@@ -123,6 +123,15 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
         GitLabGroupInfo groupInfo = getGroupInfo();
         return (groupInfo != null) ? groupInfo.getName() : "<could not fetch group information>";
     }
+    
+    /**
+     * Gets the folder name of the associated folder.
+     * 
+     * @return the folder name
+     */
+    public String getFolderName() {
+        return owner.getName();
+    }
 
     /**
      * Checks if the given GitLab identity has the given permission.
