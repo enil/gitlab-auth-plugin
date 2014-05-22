@@ -123,7 +123,17 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
         GitLabGroupInfo groupInfo = getGroupInfo();
         return (groupInfo != null) ? groupInfo.getName() : "<could not fetch group information>";
     }
-    
+
+    /**
+     * Gets the group URL of this folder.
+     *
+     * @return the URL
+     */
+    public String getGroupUrl() {
+        GitLabGroupInfo groupInfo = getGroupInfo();
+        return (groupInfo != null) ? GitLab.getUrlForGroup(groupInfo) : "<could not fetch group information>";
+    }
+
     /**
      * Gets the folder name of the associated folder.
      * 

@@ -27,7 +27,6 @@ package com.sonymobile.jenkins.plugins.gitlabauth;
 
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
-import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
 
 /**
@@ -49,9 +48,9 @@ public class GroupFolderInfo {
     }
 
     /**
-     * Gets the group id.
+     * Gets the group ID.
      * 
-     * @return the group id
+     * @return the group ID
      */
     public int getGroupId() {
         return folderProperty.getGroupId();
@@ -85,40 +84,25 @@ public class GroupFolderInfo {
     }
     
     /**
-     * Gets the group url.
-     * 
-     * Return "N/A" if a group url couldn't be found.
-     * 
-     * @return
+     * Gets the group URL.
+     *
+     * @return the group URL
      */
     public String getGroupUrl() {
-        GitLabGroupInfo group = null;
-        try {
-            group = GitLab.getGroup(getGroupId());
-            
-        } catch (GitLabApiException e) {}
-        
-        if (group != null) {
-            //return group.getUrl();
-        }
-        return "N/A";
+        return folderProperty.getGroupUrl();
     }
     
     /**
-     * Gets the GitLab access level for a user id in this GitLab group.
+     * Gets the GitLab access level for a user ID in this GitLab group.
      * 
-     * @param userId the user id
+     * @param userId the user ID
      * @return the GitLab access level
      */
     public GitLabAccessLevel getAccessLevelForUser(int userId) {
-        GitLabAccessLevel accessLevel = null;
         try {
-            accessLevel = GitLab.getAccessLevelInGroup(userId, getGroupId());
-        } catch (GitLabApiException e) {}
-        
-        if (accessLevel != null) {
-            return accessLevel;
+            return GitLab.getAccessLevelInGroup(userId, getGroupId());
+        } catch (GitLabApiException e) {
+            return GitLabAccessLevel.NONE;
         }
-        return GitLabAccessLevel.NONE;
     }
 }
