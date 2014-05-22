@@ -209,6 +209,16 @@ public class GitLab {
     }
 
     /**
+     * Gets the URL for a group.
+     *
+     * @param group the group
+     * @return a string for the URL
+     */
+    public static String getUrlForGroup(GitLabGroupInfo group) {
+        return instance.getUrlForGroup(group);
+    }
+
+    /**
      * Returns the singleton implementation.
      *
      * @return the instance
@@ -376,6 +386,13 @@ public class GitLab {
                     throw new RuntimeException(e.getCause());
                 }
             }
+        }
+
+        /**
+         * @see GitLab#getUrlForGroup(GitLabGroupInfo)
+         */
+        public String getUrlForGroup(GitLabGroupInfo group) {
+            return String.format("%s/groups/%s", getApiClient().getHost(), group.getPath());
         }
 
         /**
