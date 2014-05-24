@@ -35,18 +35,14 @@ import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabFolderACL;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabGrantedPermissions;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity;
-import com.sonymobile.jenkins.plugins.gitlabauth.acl.JenkinsAccessLevel;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity.IdentityType;
-
+import com.sonymobile.jenkins.plugins.gitlabauth.acl.JenkinsAccessLevel;
 import hudson.Extension;
 import hudson.model.Descriptor;
-import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.security.Permission;
-import hudson.security.PermissionGroup;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
-
 import org.kohsuke.stapler.StaplerRequest;
 
 import java.util.List;
@@ -96,6 +92,16 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
     }
 
     /**
+     * Gets the group for this folder.
+     *
+     * @return the group.
+     * @throws GitLabApiException if the connection against GitLab failed
+     */
+    public GitLabGroupInfo getGroup() throws GitLabApiException {
+        return GitLab.getGroup(getGroupId());
+    }
+
+    /**
      * Gets the group id for this folder.
      *
      * @return the groupId
@@ -136,7 +142,7 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
 
     /**
      * Gets the folder name of the associated folder.
-     * 
+     *
      * @return the folder name
      */
     public String getFolderName() {
@@ -175,14 +181,14 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
 
     /**
      * Gets group information for the GitLab group from the API.
-     * 
+     *
      * Logger will warn if fetching the group information failed.
      *
      * @return a group info object or null if fetch failed
      */
     private GitLabGroupInfo getGroupInfo() {
         try {
-            return GitLab.getGroup(getGroupId());
+            return getGroup();
         } catch (GitLabApiException e) {
             LOGGER.warning("Failed for fetch group with ID " + getGroupId());
         }

@@ -25,9 +25,12 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
+import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
+import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
+import hudson.model.TopLevelItem;
 
 /**
  * Info holder class used to display information about a folder and the associated group.
@@ -45,6 +48,32 @@ public class GroupFolderInfo {
      */
     public GroupFolderInfo(GitLabFolderAuthorization folderProperty) {
         this.folderProperty = folderProperty;
+    }
+
+    /**
+     * Create an group folder info object from an item.
+     *
+     * @param item the top level item
+     * @return a group folder info object or null if the item isn't a group folder
+     */
+    public static GroupFolderInfo createFromItem(TopLevelItem item) {
+        if (item instanceof Folder) {
+            GitLabFolderAuthorization property = ((Folder)item).getProperties().get(GitLabFolderAuthorization.class);
+            if (property != null) {
+                return new GroupFolderInfo(property);
+            }
+        }
+        // not a group folder
+        return null;
+    }
+
+    /**
+     * Gets the group info object.
+     *
+     * @return the group info object
+     */
+    public GitLabGroupInfo getGroup() throws GitLabApiException {
+        return folderProperty.getGroup();
     }
 
     /**

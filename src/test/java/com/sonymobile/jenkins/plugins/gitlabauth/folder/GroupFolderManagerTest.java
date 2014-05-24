@@ -26,6 +26,7 @@
 package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
+import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.GroupFolderInfo;
@@ -59,7 +60,6 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.hasKey;
 import static org.junit.Assert.assertThat;
@@ -75,7 +75,7 @@ import static org.powermock.api.easymock.PowerMock.verify;
  */
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ GitLabFolderAuthorization.class, GroupFolderManager.class, GitLab.class })
-public class GroupFolderManagerTest {
+public class GroupFolderManagerTest implements GroupFolderManager.ManagesGroupPredicate {
     /** A rule for catching expected exceptions. */
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -112,19 +112,23 @@ public class GroupFolderManagerTest {
         // create a folder manager with the mock item group and folder descriptor
         folderManager = Whitebox.invokeConstructor(
                 GroupFolderManager.class,
-                new Class[]{ ModifiableTopLevelItemGroup.class, TopLevelItemDescriptor.class },
-                new Object[]{ itemGroup, folderDescriptor });
+                new Class[] {
+                        GroupFolderManager.ManagesGroupPredicate.class,
+                        ModifiableTopLevelItemGroup.class,
+                        TopLevelItemDescriptor.class },
+                new Object[] { this, itemGroup, folderDescriptor }
+        );
     }
 
     /**
      * Tests getting the existing GitLab group folders.
      */
     @Test
-    public void getFolders() {
+    public void getFolders() throws Exception {
         // two GitLab folder and two misc items
         addItems(
-                gitLabFolder("group1", 1),
-                gitLabFolder("group2", 2),
+                gitLabFolder(1, "Group 1", "group1"),
+                gitLabFolder(2, "Group 2", "group2"),
                 folder("folder"),
                 freeStyleProject("item"));
         replay(itemGroup);
@@ -142,34 +146,6 @@ public class GroupFolderManagerTest {
     }
 
     /**
-     * Tests getting existing GitLab group folders owned by a user.
-     */
-    @Test
-    public void getFoldersOwnedByUser() throws Exception {
-        // two GitLab folder and two misc items
-        addItems(
-                gitLabFolder("group1", 1),
-                gitLabFolder("group2", 2),
-                folder("folder"),
-                freeStyleProject("item"));
-
-        // user 1 is owner of group1 but not group2
-        expect(GitLab.isGroupOwner(1, 1)).andReturn(true);
-        expect(GitLab.isGroupOwner(1, 2)).andReturn(false);
-        replay(itemGroup, GitLab.class);
-
-        Map<Integer, GroupFolderInfo> existingFolders = folderManager.getFoldersOwnedByUser(1);
-
-        verify(itemGroup, GitLab.class);
-
-        assertThat(existingFolders.size(), is(1));
-        assertThat("GitLab folder not matched", existingFolders, hasKey(1));
-        assertThat("GitLab folder matched", existingFolders, not(hasKey(2)));
-
-        assertThat(existingFolders.get(1).getGroupId(), is(1));
-    }
-
-    /**
      * Tests creating new GitLab group folders.
      */
     @Test
@@ -181,7 +157,7 @@ public class GroupFolderManagerTest {
         );
         // group1 is already created
         addItems(
-                gitLabFolder("group1", 1),
+                gitLabFolder(1, "Group 1", "group1"),
                 folder("folder"),
                 freeStyleProject("item"));
 
@@ -217,7 +193,7 @@ public class GroupFolderManagerTest {
         );
         // group1 is already created, group3 and group4 collides with existing items
         addItems(
-                gitLabFolder("group1", 1),
+                gitLabFolder(1, "Group 1", "group1"),
                 freeStyleProject("group3"),
                 folder("group4"));
 
@@ -239,34 +215,14 @@ public class GroupFolderManagerTest {
     }
 
     /**
-     * Tests checking if GitLab group folders already exist.
-     */
-    @Test
-    public void folderExists() {
-        // only group1 is a GitLab group
-        addItems(
-                gitLabFolder("group1", 1),
-                folder("group2"),
-                freeStyleProject("group3"));
-        replay(itemGroup);
-
-        assertThat(folderManager.folderExists(mockGroupInfo(1, "Group 1", "group1")), is(true));
-        assertThat(folderManager.folderExists(mockGroupInfo(2, "Group 2", "group2")), is(false));
-        assertThat(folderManager.folderExists(mockGroupInfo(3, "Group 3", "group3")), is(false));
-        assertThat(folderManager.folderExists(mockGroupInfo(4, "Group 4", "group4")), is(false));
-
-        verify(itemGroup);
-    }
-
-    /**
      * Creates a mock of a GitLab group folder
      *
      * @param name    the name of the item
      * @param groupId the group ID of the group
      * @return a GitLab group folder
      */
-    private Folder gitLabFolder(String name, int groupId) {
-        return mockFolder().name(name).addProperty(mockFolderAuthorization(groupId)).build();
+    private Folder gitLabFolder(int groupId, String name, String path) {
+        return mockFolder().name(name).addProperty(mockFolderAuthorization(groupId, name, path)).build();
     }
 
     /**
@@ -280,5 +236,9 @@ public class GroupFolderManagerTest {
 
     private void addGroups(GitLabGroupInfo... groups) {
         this.groups.addAll(asList(groups));
+    }
+
+    public boolean shouldManageGroup(GitLabGroupInfo group) throws GitLabApiException {
+        return true;
     }
 }
