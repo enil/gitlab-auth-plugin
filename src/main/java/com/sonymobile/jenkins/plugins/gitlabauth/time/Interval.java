@@ -25,12 +25,10 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth.time;
 
-import com.sonymobile.jenkins.plugins.gitlabauth.folder.PeriodicGitLabFolderSynchronization;
-
 import java.util.concurrent.TimeUnit;
 
 /**
- * A time duration used by {@link PeriodicGitLabFolderSynchronization}.
+ * A time duration specified using a duration and unit.
  *
  * @author Emil Nilsson
  */
@@ -45,7 +43,7 @@ public final class Interval {
      * Creates a time duration
      *
      * @param duration the time specified in the time unit
-     * @param unit the time unit the time is specified in
+     * @param unit     the time unit the time is specified in
      */
     public Interval(long duration, TimeUnit unit) {
         this.duration = duration;

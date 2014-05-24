@@ -87,7 +87,7 @@ public class GroupFolderManager {
      * @param itemGroup        the item group
      * @param folderDescriptor the folder descriptor
      */
-    private GroupFolderManager(
+    /* package */ GroupFolderManager(
             ModifiableTopLevelItemGroup itemGroup,
             TopLevelItemDescriptor folderDescriptor) {
         // include all groups
@@ -101,7 +101,7 @@ public class GroupFolderManager {
      * @param itemGroup             the item group
      * @param folderDescriptor      the folder descriptor
      */
-    private GroupFolderManager(
+    /* package */ GroupFolderManager(
             ManagesGroupPredicate managesGroupPredicate,
             ModifiableTopLevelItemGroup itemGroup,
             TopLevelItemDescriptor folderDescriptor) {

@@ -42,7 +42,6 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-import org.powermock.reflect.Whitebox;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -96,6 +95,7 @@ public class GroupFolderManagerTest implements GroupFolderManager.ManagesGroupPr
      * The folder manager instance.
      *
      * This folder manager only manages group with a group ID less than 10.
+     *
      * @see #shouldManageGroup(GitLabGroupInfo)
      */
     private GroupFolderManager folderManager;
@@ -114,15 +114,7 @@ public class GroupFolderManagerTest implements GroupFolderManager.ManagesGroupPr
 
         mockStatic(GitLab.class);
 
-        // create a folder manager with the mock item group and folder descriptor
-        folderManager = Whitebox.invokeConstructor(
-                GroupFolderManager.class,
-                new Class[] {
-                        GroupFolderManager.ManagesGroupPredicate.class,
-                        ModifiableTopLevelItemGroup.class,
-                        TopLevelItemDescriptor.class },
-                new Object[] { this, itemGroup, folderDescriptor }
-        );
+        folderManager = new GroupFolderManager(this, itemGroup, folderDescriptor);
     }
 
     /**

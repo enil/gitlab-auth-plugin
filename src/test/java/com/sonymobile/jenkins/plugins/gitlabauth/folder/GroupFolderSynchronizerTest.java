@@ -26,17 +26,15 @@
 package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
+import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
-import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
 import hudson.model.TopLevelItem;
 import hudson.model.TopLevelItemDescriptor;
 import jenkins.model.ModifiableTopLevelItemGroup;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.powermock.api.easymock.PowerMock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -48,7 +46,6 @@ import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataCreators
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataCreators.mockGroupInfo;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockFolderBuilder.folder;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockFolderBuilder.mockFolder;
-import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockFreeStyleProjectBuilder.freeStyleProject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -56,21 +53,17 @@ import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
-import static org.powermock.api.easymock.PowerMock.mockStatic;
 
 /**
- * Tests for {@link GitLabFolderSynchronizer}.
+ * Tests for {@link GroupFolderSynchronizer}.
  *
  * @author Emil Nilsson
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({GitLab.class, GitLabFolderAuthorization.class, GitLabFolderCreator.class})
-public class GitLabFolderSynchronizerTest {
-    /** The descriptor for a Folder item. */
+@PrepareForTest({ GroupFolderManager.class, GitLabFolderAuthorization.class })
+public class GroupFolderSynchronizerTest {
+    /** The descriptor for folder items. */
     private static final TopLevelItemDescriptor folderDescriptor = new Folder.DescriptorImpl();
-
-    /** A list of groups that the mock GitLab cache returns. */
-    private List<GitLabGroupInfo> groups;
 
     /** A mock item group to create folders in. */
     private ModifiableTopLevelItemGroup itemGroup;
@@ -78,8 +71,11 @@ public class GitLabFolderSynchronizerTest {
     /** Items in the mock item group. */
     private List<TopLevelItem> items;
 
+    /** A list of groups to be created. */
+    private List<GitLabGroupInfo> groups;
+
     /** The folder synchronizer. */
-    private GitLabFolderSynchronizer synchronizer;
+    private FolderSynchronizerImplementation synchronizer;
 
     @Before
     public void setUp() throws Exception {
@@ -89,27 +85,16 @@ public class GitLabFolderSynchronizerTest {
 
         // mock itemGroup#getGetItems() returning the items list
         itemGroup = createMock(ModifiableTopLevelItemGroup.class);
-        expect(itemGroup.getItems()).andReturn(items).atLeastOnce();
-
-        // mock GitLab#getGroups() returning the groups list
-        mockStatic(GitLab.class);
-        expect(GitLab.getGroups()).andReturn(groups).atLeastOnce();
-        PowerMock.replay(GitLab.class);
+        expect(itemGroup.getItems()).andReturn(items).anyTimes();
 
         // mock creating new GitLabFolderAuthorization folder properties
         expectNewFolderAuthorization();
 
-        synchronizer = new GitLabFolderSynchronizer(new GitLabFolderCreator(itemGroup, folderDescriptor));
-    }
-
-    @After
-    public void tearDown() {
-        // verify that GitLab#getGroups was called
-        PowerMock.verify(GitLab.class);
+        synchronizer = new FolderSynchronizerImplementation(itemGroup, folderDescriptor);
     }
 
     /**
-     * Tests {@link GitLabFolderSynchronizer#synchronizeGroupFolders()} with an empty item group.
+     * Tests the synchronizer with an empty item group.
      */
     @Test
     public void withNoExistingItems() throws Exception {
@@ -120,7 +105,7 @@ public class GitLabFolderSynchronizerTest {
 
         replay(itemGroup);
 
-        synchronizer.synchronizeGroupFolders();
+        synchronizer.synchronizeGroupFolders(groups);
 
         // verify that itemGroup#createProject was called
         verify(itemGroup);
@@ -132,25 +117,7 @@ public class GitLabFolderSynchronizerTest {
     }
 
     /**
-     * Tests {@link GitLabFolderSynchronizer#synchronizeGroupFolders()} with an item group with existing (non GitLab
-     * folder) items.
-     */
-    @Test
-    public void withExistingItems() throws Exception {
-        items.add(freeStyleProject("item1"));
-        items.add(folder("item2"));
-
-        replay(itemGroup);
-
-        synchronizer.synchronizeGroupFolders();
-
-        // verify itemGroup#createProject wasn't called
-        verify(itemGroup);
-    }
-
-    /**
-     * Tests {@link GitLabFolderSynchronizer#synchronizeGroupFolders()} with an item group with existing GitLab
-     * folders.
+     * Tests the synchronizer with an item group with existing GitLab folders.
      */
     @Test
     public void withExistingGitLabFolders() throws Exception {
@@ -163,16 +130,19 @@ public class GitLabFolderSynchronizerTest {
 
         replay(itemGroup);
 
-        synchronizer.synchronizeGroupFolders();
+        synchronizer.synchronize();
 
         // verify itemGroup#createProject wasn't called
         verify(itemGroup);
     }
 
+    /**
+     * Tests the synchronizer with multiple groups.
+     */
     @Test
     public void withMultipleGroups() throws Exception {
-        groups.add(mockGroupInfo(1, "Folder 2", "folder1"));
-        groups.add(mockGroupInfo(2, "Folder 1", "folder2"));
+        groups.add(mockGroupInfo(1, "Folder 1", "folder1"));
+        groups.add(mockGroupInfo(2, "Folder 2", "folder2"));
 
         Folder folder1 = folder("folder1");
         Folder folder2 = folder("folder2");
@@ -181,7 +151,7 @@ public class GitLabFolderSynchronizerTest {
 
         replay(itemGroup);
 
-        synchronizer.synchronizeGroupFolders();
+        synchronizer.synchronize();
 
         // verify that itemGroup#createProject was called for both folders
         verify(itemGroup);
@@ -194,5 +164,51 @@ public class GitLabFolderSynchronizerTest {
         assertThat("folder property not set", folder2Property, is(notNullValue()));
         assertThat("group ID not set correctly", folder1Property.getGroupId(), is(1));
         assertThat("group ID not set correctly", folder2Property.getGroupId(), is(2));
+    }
+
+    /**
+     * Tests the synchronizer with an excluded group.
+     */
+    @Test
+    public void withExcludedGroup() throws Exception {
+        groups.add(mockGroupInfo(1, "Folder 1", "folder1"));
+        groups.add(mockGroupInfo(10, "Folder 2", "folder2"));
+
+        Folder folder = folder("folder1");
+        expect(itemGroup.createProject(folderDescriptor, "folder1", true)).andReturn(folder);
+
+        replay(itemGroup);
+
+        synchronizer.synchronize();
+
+        // verify that itemGroup#createProject was called for only the first folder
+        verify(itemGroup);
+    }
+
+    /**
+     * Concrete implementation of {@link GroupFolderSynchronizer} for testing.
+     */
+    private class FolderSynchronizerImplementation extends GroupFolderSynchronizer {
+        public FolderSynchronizerImplementation(
+                ModifiableTopLevelItemGroup itemGroup,
+                TopLevelItemDescriptor folderDescriptor) {
+            super(itemGroup, folderDescriptor);
+        }
+
+        /**
+         * Synchronizes the group from the groups list.
+         *
+         * @throws GitLabApiException if the connection against GitLab failed
+         */
+        public void synchronize() throws GitLabApiException {
+            synchronizeGroupFolders(groups);
+        }
+
+        /**
+         * Only allows creating groups with a single digit group ID.
+         */
+        public boolean shouldManageGroup(GitLabGroupInfo group) throws GitLabApiException {
+            return group.getId() < 10;
+        }
     }
 }
