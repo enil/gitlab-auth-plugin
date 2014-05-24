@@ -25,58 +25,58 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 
-import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfiguration;
+import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.time.Interval;
 import hudson.Extension;
 import hudson.model.AperiodicWork;
-import hudson.model.TopLevelItemDescriptor;
-import jenkins.model.Jenkins;
 
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 /**
- * A periodic work regularly synchronizing folders for GitLab groups.
+ * An extension regularly synchronizing GitLab group folders.
  *
  * @author Emil Nilsson
  */
 @Extension
-public final class PeriodicGitLabFolderSynchronization extends AperiodicWork {
+public final class ScheduledGroupFolderSynchronization extends AperiodicWork {
     /** The default duration between synchronizations. */
-    private static final Interval DEFAULT_PERIOD_DURATION = new Interval(10, TimeUnit.MINUTES);
+    private static final Interval DEFAULT_PERIOD_DURATION = new Interval(10, TimeUnit.SECONDS);
 
     /** The synchronizer creating folders from GitLab groups. */
-    private final GitLabFolderSynchronizer synchronizer;
+    private static final Synchronizer synchronizer = new Synchronizer();
 
     /** The duration between synchronizations. */
     private Interval periodDuration;
 
     /** The logger for the class. */
-    private final Logger LOGGER = Logger.getLogger(GitLabFolderSynchronizer.class.getName());
+    private final Logger LOGGER = Logger.getLogger(ScheduledGroupFolderSynchronization.class.getName());
 
     /**
-     * Creates a periodic folder synchronization with the default duration.
+     * Creates a scheduled group folder synchronization with the default duration.
      */
-    public PeriodicGitLabFolderSynchronization() {
+    public ScheduledGroupFolderSynchronization() {
         this(DEFAULT_PERIOD_DURATION);
     }
 
     /**
-     * Creates a periodic folder synchronization.
+     * Creates scheduled group folder synchronization.
      *
      * @param periodDuration the duration between synchronizations
      */
-    public PeriodicGitLabFolderSynchronization(Interval periodDuration) {
+    public ScheduledGroupFolderSynchronization(Interval periodDuration) {
         this.periodDuration = periodDuration;
+    }
 
-        // Jenkins instance to create folders in
-        Jenkins jenkins = Jenkins.getInstance();
-        // descriptor of Folder to be used for folder creation
-        TopLevelItemDescriptor folderDescriptor = jenkins.getDescriptorByType(Folder.DescriptorImpl.class);
-
-        synchronizer = new GitLabFolderSynchronizer(new GitLabFolderCreator(jenkins, folderDescriptor));
+    /**
+     * Whether synchronization should be performed.
+     *
+     * @return true if synchronization should be performed
+     */
+    public boolean isActive() {
+        return true;
     }
 
     /**
@@ -87,14 +87,15 @@ public final class PeriodicGitLabFolderSynchronization extends AperiodicWork {
      * @return true if synchronization was attempted
      * @throws GitLabApiException if the connection against GitLab failed
      */
-    public boolean synchronize() throws GitLabApiException {
-        // only try to synchronize if GitLab is configured
-        if (GitLabConfiguration.isApiConfigured()) {
-            synchronizer.synchronizeGroupFolders();
-            return true;
-        } else {
-            return false;
+    private boolean synchronize() throws GitLabApiException {
+        if (isActive()) {
+            // only try to synchronize if GitLab is configured
+            if (GitLabConfiguration.isApiConfigured()) {
+                synchronizer.synchronize();
+                return true;
+            }
         }
+        return false;
     }
 
     @Override
@@ -105,7 +106,7 @@ public final class PeriodicGitLabFolderSynchronization extends AperiodicWork {
 
     @Override
     public AperiodicWork getNewInstance() {
-        return new PeriodicGitLabFolderSynchronization(getPeriodDuration());
+        return new ScheduledGroupFolderSynchronization(getPeriodDuration());
     }
 
     @Override
@@ -115,6 +116,7 @@ public final class PeriodicGitLabFolderSynchronization extends AperiodicWork {
                 LOGGER.warning("Cannot synchronize GitLab folders: GitLab not configured. Retrying in " +
                         periodDuration);
             }
+
         } catch (GitLabApiException e) {
             LOGGER.severe("Synchronization of GitLab folders failed: " + e.getMessage());
         }
@@ -127,5 +129,20 @@ public final class PeriodicGitLabFolderSynchronization extends AperiodicWork {
      */
     private synchronized Interval getPeriodDuration() {
         return periodDuration;
+    }
+
+    /**
+     * Implementation of the group folder synchronization mechanism.
+     */
+    private static class Synchronizer extends GroupFolderSynchronizer {
+        /**
+         * Synchronizes folders for all GitLab groups.
+         *
+         * @throws GitLabApiException if the connection against GitLab failed
+         */
+        public void synchronize() throws GitLabApiException {
+            // synchronize all available groups
+            synchronizeGroupFolders(GitLab.getGroups());
+        }
     }
 }
