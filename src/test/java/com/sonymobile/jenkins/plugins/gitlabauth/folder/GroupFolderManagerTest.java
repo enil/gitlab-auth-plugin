@@ -92,7 +92,12 @@ public class GroupFolderManagerTest implements GroupFolderManager.ManagesGroupPr
     /** The GitLab groups. */
     private List<GitLabGroupInfo> groups;
 
-    /** The folder manager instance. */
+    /**
+     * The folder manager instance.
+     *
+     * This folder manager only manages group with a group ID less than 10.
+     * @see #shouldManageGroup(GitLabGroupInfo)
+     */
     private GroupFolderManager folderManager;
 
     @Before
@@ -125,10 +130,11 @@ public class GroupFolderManagerTest implements GroupFolderManager.ManagesGroupPr
      */
     @Test
     public void getFolders() throws Exception {
-        // two GitLab folder and two misc items
+        // group1 and group2 are managed by the folder manager, everything else should be excluded
         addItems(
                 gitLabFolder(1, "Group 1", "group1"),
                 gitLabFolder(2, "Group 2", "group2"),
+                gitLabFolder(10, "Group 10", "group10"),
                 folder("folder"),
                 freeStyleProject("item"));
         replay(itemGroup);
@@ -150,10 +156,11 @@ public class GroupFolderManagerTest implements GroupFolderManager.ManagesGroupPr
      */
     @Test
     public void createFolders() throws Exception {
-        // attempt to create group1 and group2
+        // attempt to create group1, group2 and group 10 (group 10 is not managed)
         addGroups(
                 mockGroupInfo(1, "Group 1", "group1"),
-                mockGroupInfo(2, "Group 2", "group2")
+                mockGroupInfo(2, "Group 2", "group2"),
+                mockGroupInfo(10, "Group 10", "group10")
         );
         // group1 is already created
         addItems(
@@ -238,7 +245,16 @@ public class GroupFolderManagerTest implements GroupFolderManager.ManagesGroupPr
         this.groups.addAll(asList(groups));
     }
 
+    /**
+     * Checks whether a group should be managed by the folder manager.
+     *
+     * Used to exclude groups with a group ID greater than 9.
+     *
+     * @param group the group
+     * @return true if the group should be managed
+     * @throws GitLabApiException
+     */
     public boolean shouldManageGroup(GitLabGroupInfo group) throws GitLabApiException {
-        return true;
+        return group.getId() < 10;
     }
 }
