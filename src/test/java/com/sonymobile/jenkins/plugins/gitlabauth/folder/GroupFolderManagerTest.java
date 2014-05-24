@@ -246,12 +246,12 @@ public class GroupFolderManagerTest implements GroupFolderManager.ManagesGroupPr
     }
 
     /**
-     * Checks whether a group should be managed by the folder manager.
+     * Checks whether a group should be included by the folder manager.
      *
      * Used to exclude groups with a group ID greater than 9.
      *
      * @param group the group
-     * @return true if the group should be managed
+     * @return true if the group should be included
      * @throws GitLabApiException
      */
     public boolean shouldManageGroup(GitLabGroupInfo group) throws GitLabApiException {

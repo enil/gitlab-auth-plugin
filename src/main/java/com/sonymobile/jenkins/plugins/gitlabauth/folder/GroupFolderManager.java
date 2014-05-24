@@ -26,7 +26,6 @@
 package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
-import com.google.common.base.Predicate;
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.GroupFolderInfo;
@@ -38,14 +37,12 @@ import jenkins.model.Jenkins;
 import jenkins.model.ModifiableTopLevelItemGroup;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Maps.filterValues;
-import static com.sonymobile.jenkins.plugins.gitlabauth.utils.Predicates.truePredicate;
 import static org.apache.commons.lang3.StringUtils.join;
 
 /**
@@ -54,11 +51,12 @@ import static org.apache.commons.lang3.StringUtils.join;
  * @author Emil Nilsson
  */
 public class GroupFolderManager {
-    /** Predicate used to determine whether a group should be managed by the manager. */
-    private final Predicate<GitLabGroupInfo> managesGroupPredicate;
-
-    /** Predicate used to determine whether a group folder should be managed by the manager. */
-    private final Predicate<GroupFolderInfo> managesGroupFolderPredicate;
+    /**
+     * Predicate used to include or exclude groups.
+     *
+     * If set to null all groups are included.
+     */
+    private final ManagesGroupPredicate managesGroupPredicate;
 
     /** The item group for the folders. */
     private final ModifiableTopLevelItemGroup itemGroup;
@@ -70,6 +68,7 @@ public class GroupFolderManager {
      * Creates a GitLab group folder manager.
      */
     public GroupFolderManager() {
+        // include all groups
         this(getJenkinsInstance(), getFolderDescriptor());
     }
 
@@ -91,11 +90,8 @@ public class GroupFolderManager {
     private GroupFolderManager(
             ModifiableTopLevelItemGroup itemGroup,
             TopLevelItemDescriptor folderDescriptor) {
-        /* include all groups */
-        managesGroupPredicate = truePredicate();
-        managesGroupFolderPredicate = truePredicate();
-        this.itemGroup = itemGroup;
-        this.folderDescriptor = folderDescriptor;
+        // include all groups
+        this(null, itemGroup, folderDescriptor);
     }
 
     /**
@@ -109,26 +105,19 @@ public class GroupFolderManager {
             ManagesGroupPredicate managesGroupPredicate,
             ModifiableTopLevelItemGroup itemGroup,
             TopLevelItemDescriptor folderDescriptor) {
-        // convert into regular predicates
-        this.managesGroupPredicate = convertManagesGroupPredicate(managesGroupPredicate);
-        managesGroupFolderPredicate = convertManagesGroupFolderPredicate(managesGroupPredicate);
+        this.managesGroupPredicate = managesGroupPredicate;
         this.itemGroup = itemGroup;
         this.folderDescriptor = folderDescriptor;
     }
 
     /**
-     * Returns all managed GitLab folders.
+     * Returns all included GitLab folders.
      *
      * @return a map of group IDs and folders
      * @throws GitLabApiException if the connection against GitLab failed
      */
     public synchronized Map<Integer, GroupFolderInfo> getFolders() throws GitLabApiException {
-        try {
-            return filterValues(getAllFolders(), managesGroupFolderPredicate);
-        } catch (WrappedGitLabApiException e) {
-            // unwrap exception
-            throw e.getCause();
-        }
+        return filterGroupFoldersMap(getAllFolders());
     }
 
     /**
@@ -143,16 +132,11 @@ public class GroupFolderManager {
      */
     public synchronized void createFolders(Iterable<GitLabGroupInfo> groups)
             throws GitLabApiException, ItemNameCollisionException, IOException {
-        try {
-            createSelectedFolders(filter(groups, managesGroupPredicate));
-        } catch (WrappedGitLabApiException e) {
-            // unwrap exception
-            throw e.getCause();
-        }
+        createSelectedFolders(filterGroups(groups));
     }
 
     /**
-     * Gets all group folders including filtered folders.
+     * Gets all group folders.
      *
      * @return all group folders
      */
@@ -171,7 +155,7 @@ public class GroupFolderManager {
     /**
      * Creates group folders.
      *
-     * This is used to actually create the folders were filtered using the predicate.
+     * This is used to create the included folders after filtering.
      *
      * @param groups the folders
      */
@@ -221,6 +205,62 @@ public class GroupFolderManager {
     }
 
     /**
+     * Filters groups excluded by the predicate.
+     *
+     * @param groups the groups
+     * @return the groups
+     * @throws GitLabApiException if the connection against GitLab failed
+     */
+    private Iterable<GitLabGroupInfo> filterGroups(Iterable<GitLabGroupInfo> groups)
+            throws GitLabApiException {
+        Iterator<GitLabGroupInfo> iterator = groups.iterator();
+
+        while (iterator.hasNext()) {
+            if (!managesGroup(iterator.next())) { iterator.remove(); }
+        }
+        return groups;
+    }
+
+    /**
+     * Filters group folders excluded by the predicate.
+     *
+     * @param groupFolders the group folders
+     * @return the group folders
+     * @throws GitLabApiException if the connection against GitLab failed
+     */
+    private Map<Integer, GroupFolderInfo> filterGroupFoldersMap(Map<Integer, GroupFolderInfo> groupFolders)
+            throws GitLabApiException {
+        Iterator<GroupFolderInfo> iterator = groupFolders.values().iterator();
+
+        while (iterator.hasNext()) {
+            if (!managesGroupFolder(iterator.next())) { iterator.remove(); }
+        }
+        return groupFolders;
+    }
+
+    /**
+     * Checks whether a group folder should be included.
+     *
+     * @param group the group
+     * @return true if the group should be included
+     */
+    private boolean managesGroup(GitLabGroupInfo group) throws GitLabApiException {
+        return managesGroupPredicate == null || managesGroupPredicate.shouldManageGroup(group);
+    }
+
+    /**
+     * Checks whether a group folder should be included.
+     *
+     * @param groupFolder the group folder
+     * @return true if the group folder should be included
+     */
+    private boolean managesGroupFolder(GroupFolderInfo groupFolder) throws GitLabApiException {
+        GitLabGroupInfo group = groupFolder.getGroup();
+        return managesGroupPredicate == null || (group != null && managesGroupPredicate.shouldManageGroup(group));
+    }
+
+
+    /**
      * Gets the Jenkins instance
      *
      * @return the Jenkins instance
@@ -241,71 +281,16 @@ public class GroupFolderManager {
     }
 
     /**
-     * Converts a manages group-predicate to a regular predicate.
-     *
-     * This is done by wrapping the checked exception in a runtime exception.
-     *
-     * @param predicate the manages group-predicate
-     * @return a regular predicate
-     */
-    private static Predicate<GitLabGroupInfo> convertManagesGroupPredicate(final ManagesGroupPredicate predicate) {
-        return new Predicate<GitLabGroupInfo>() {
-            public boolean apply(GitLabGroupInfo group) {
-                try {
-                    return predicate.shouldManageGroup(group);
-                } catch (GitLabApiException e) {
-                    throw new WrappedGitLabApiException(e);
-                }
-            }
-        };
-    }
-
-    /**
-     * Converts a manages group-predicate to a regular predicate for group folders.
-     *
-     * This is done by wrapping the checked exception in a runtime exception.
-     *
-     * @param predicate the manages group-predicate
-     * @return a regular predicate
-     */
-    private static Predicate<GroupFolderInfo> convertManagesGroupFolderPredicate(
-            final ManagesGroupPredicate predicate) {
-        return new Predicate<GroupFolderInfo>() {
-            public boolean apply(GroupFolderInfo groupFolder) {
-                try {
-                    return predicate.shouldManageGroup(groupFolder.getGroup());
-                } catch (GitLabApiException e) {
-                    throw new WrappedGitLabApiException(e);
-                }
-            }
-        };
-    }
-
-    /**
-     * Predicate for determining whether to manage a certain group.
+     * Predicate for determining whether to include a certain group.
      */
     public static interface ManagesGroupPredicate {
         /**
-         * Checks whether a group should be managed by the folder manager.
+         * Checks whether a group should be included by the folder manager.
          *
          * @param group the group
-         * @return true if the group should be managed
+         * @return true if the group should be included
          * @throws GitLabApiException
          */
         public boolean shouldManageGroup(GitLabGroupInfo group) throws GitLabApiException;
-    }
-
-    /**
-     * Runtime exception wrapper for {@link GitLabApiException}.
-     */
-    private static class WrappedGitLabApiException extends RuntimeException {
-        public WrappedGitLabApiException(GitLabApiException cause) {
-            super(cause);
-        }
-
-        @Override
-        public synchronized GitLabApiException getCause() {
-            return (GitLabApiException)super.getCause();
-        }
     }
 }
