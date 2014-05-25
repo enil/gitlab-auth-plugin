@@ -25,138 +25,114 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth.configuration;
 
+import com.sonymobile.jenkins.plugins.gitlabauth.time.Interval;
 import hudson.Extension;
 import hudson.ExtensionList;
+import hudson.util.FormValidation;
+import jenkins.model.GlobalConfiguration;
+import jenkins.model.Jenkins;
+import net.sf.json.JSONObject;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
 
 import java.util.concurrent.TimeUnit;
 
-import net.sf.json.JSONObject;
-
-import org.kohsuke.stapler.StaplerRequest;
-
-import jenkins.model.GlobalConfiguration;
-import jenkins.model.Jenkins;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
+ * fixme: periods
  * Configuration page used to configure settings such as
  * period duration and if folders should be created automatically
  * or manually by users.
- * 
+ *
  * @author Andreas Alanko
+ * @author Emil Nilsson
  */
 @Extension
 public class GitLabAuthConfiguration extends GlobalConfiguration {
-    private final static long DEFAULT_PERIOD_DURATION = 10;
-    private final static TimeUnit DEFAUTL_PERIOD_TIMEUNIT = TimeUnit.MINUTES;
-    
-    private long periodDuration = DEFAULT_PERIOD_DURATION;
-    private TimeUnit periodUnit = DEFAUTL_PERIOD_TIMEUNIT;
-    
+    /** The default period duration interval. */
+    public static final Interval DEFAULT_PERIOD_DURATION = new Interval(10, MINUTES);
+
+    /** The time unit used for the period duration if not explicitly stated. */
+    private static final TimeUnit DEFAULT_PERIOD_TIME_UNIT = MINUTES;
+
+    /** The period duration for automatic synchronization. */
+    private Interval periodDuration = DEFAULT_PERIOD_DURATION;
+
+    /** Whether to use automatic folder synchronization. */
     private boolean autoCreateFolders = false;
-    
+
     /**
-     * Creates a configuration page and loads any previous settings
-     * saved by Jenkins to this object.
+     * Creates a configuration page and loads any previous settings saved by Jenkins to this object.
      */
     public GitLabAuthConfiguration() {
         load();
     }
-    
+
+    /**
+     * Saves the configured values from the submitted form.
+     *
+     * @return true if configuration succeeded
+     */
+    @Override
+    public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
+        String periodDurationInput = formData.getString("periodDuration");
+
+        try {
+            periodDuration = Interval.parseInterval(periodDurationInput, DEFAULT_PERIOD_TIME_UNIT);
+            autoCreateFolders = formData.getBoolean("autoCreateFolders");
+
+            save();
+            return true;
+        } catch (IllegalArgumentException e) {
+            throw new FormException("Invalid interval: \"" + periodDurationInput + "\"", e, "periodDuration");
+        }
+    }
+
+    /**
+     * Validates the period duration input.
+     *
+     * @param periodDuration the period duration input from the form
+     * @return ok if the form input was valid
+     */
+    public FormValidation doCheckPeriodDuration(@QueryParameter String periodDuration) {
+        try {
+            // try to parse the input
+            Interval.parseInterval(periodDuration, DEFAULT_PERIOD_TIME_UNIT);
+            return FormValidation.ok();
+        } catch (IllegalArgumentException e) {
+            return FormValidation.error("Invalid interval: \"%s\"", periodDuration);
+        }
+    }
+
+    /**
+     * Returns the period duration for automatic synchronization.
+     *
+     * @return the period duration interval
+     */
+    public Interval getPeriodDuration() {
+        return periodDuration;
+    }
+
     /**
      * Checks if folders should be created automatically.
-     * 
+     *
      * If this is false, users will have to choose which GitLab groups
      * they want to create folders for in Jenkins manually.
-     * 
+     *
      * @return true if folders should be created automatically
      */
     public boolean getAutoCreateFolders() {
         return autoCreateFolders;
     }
-    
-    /**
-     * Sets if folders should be created automatically.
-     * 
-     * @param autoCreateFolders if folders should be created automatically
-     */
-    private void setAutoCreateFolders(boolean autoCreateFolders) {
-        this.autoCreateFolders = autoCreateFolders;
-    }
-    
-    /**
-     * Gets the value of the period duration between synchronizations
-     * with the configured GitLab server.
-     * 
-     * @return the period duration
-     */
-    public long getPeriodDuration() {
-        return periodDuration;
-    }
-    
-    /**
-     * Sets the period duration between synchronizations with the
-     * configured GitLab server.
-     * 
-     * @param periodDuration the period duration
-     */
-    private void setPeriodDuration(long periodDuration) {
-        this.periodDuration = periodDuration;
-    }
-    
-    /**
-     * Saves the configured values from the submitted form.
-     *
-     * @return true if configuration succeeded else false
-     */
-    @Override
-    public boolean configure(StaplerRequest req, JSONObject formData) {
-        setPeriodDuration(formData.getLong("periodDuration"));
-        setAutoCreateFolders(formData.getBoolean("autoCreateFolders"));
-        
-        save();
-        return true;
-    }
-    
-    /**
-     * Gets the configured recurrence period or the default one if a
-     * configuration hasn't been made.
-     * 
-     * Default value is 10 minutes in milliseconds.
-     * 
-     * @return the recurrence period
-     */
-    public static long getRecurrencePeriod() {
-        GitLabAuthConfiguration instance = getInstance();
-        
-        if (instance != null) {
-            return instance.periodUnit.toMillis(instance.periodDuration);
-        }
-        return DEFAUTL_PERIOD_TIMEUNIT.toMillis(DEFAULT_PERIOD_DURATION);
-    }
-    
-    /**
-     * Checks if folders should be created automatically.
-     * 
-     * If this is false, users will have to choose which GitLab groups
-     * they want to create folders for in Jenkins manually.
-     * 
-     * @return true if folders should be created automatically
-     */
-    public static boolean useAutoCreationOfFolders() {
-        GitLabAuthConfiguration instance = getInstance();
-        
-        if (instance != null) {
-            return instance.getAutoCreateFolders();
-        }
-        return false;
-    }
-    
+
     /**
      * Returns the singleton instance of this class.
      *
      * @return the instance or null if Jenkins misbehaves
      */
-    private static GitLabAuthConfiguration getInstance() {
+    public static GitLabAuthConfiguration getInstance() {
         ExtensionList<GitLabAuthConfiguration> list = Jenkins.getInstance().getExtensionList(GitLabAuthConfiguration.class);
 
         // return the singleton instance if available from the extension list

@@ -28,6 +28,7 @@ package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfiguration;
 import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
+import com.sonymobile.jenkins.plugins.gitlabauth.configuration.GitLabAuthConfiguration;
 import com.sonymobile.jenkins.plugins.gitlabauth.time.Interval;
 import hudson.Extension;
 import hudson.model.AperiodicWork;
@@ -43,7 +44,10 @@ import java.util.logging.Logger;
 @Extension
 public final class ScheduledGroupFolderSynchronization extends AperiodicWork {
     /** The default duration between synchronizations. */
-    private static final Interval DEFAULT_PERIOD_DURATION = new Interval(10, TimeUnit.SECONDS);
+    private static final Interval DEFAULT_PERIOD_DURATION = new Interval(10, TimeUnit.MINUTES);
+
+    /** The interval between checking the configuration when not active. */
+    private static final Interval CONFIG_POLLING_INTERVAL = new Interval(1, TimeUnit.MINUTES);
 
     /** The synchronizer creating folders from GitLab groups. */
     private static final Synchronizer synchronizer = new Synchronizer();
@@ -71,12 +75,13 @@ public final class ScheduledGroupFolderSynchronization extends AperiodicWork {
     }
 
     /**
-     * Whether synchronization should be performed.
+     * Checks whether synchronization should be performed.
      *
      * @return true if synchronization should be performed
      */
     public boolean isActive() {
-        return true;
+        GitLabAuthConfiguration configuration = GitLabAuthConfiguration.getInstance();
+        return configuration.getAutoCreateFolders();
     }
 
     /**
@@ -101,7 +106,7 @@ public final class ScheduledGroupFolderSynchronization extends AperiodicWork {
     @Override
     public long getRecurrencePeriod() {
         // duration has to be in ms
-        return periodDuration.toMilliseconds();
+        return getPeriodDuration().toMilliseconds();
     }
 
     @Override
@@ -127,8 +132,14 @@ public final class ScheduledGroupFolderSynchronization extends AperiodicWork {
      *
      * @return the duration
      */
-    private synchronized Interval getPeriodDuration() {
-        return periodDuration;
+    private Interval getPeriodDuration() {
+        if (isActive()) {
+            GitLabAuthConfiguration configuration = GitLabAuthConfiguration.getInstance();
+            if (configuration != null) {
+                return configuration.getPeriodDuration();
+            }
+        }
+        return CONFIG_POLLING_INTERVAL;
     }
 
     /**

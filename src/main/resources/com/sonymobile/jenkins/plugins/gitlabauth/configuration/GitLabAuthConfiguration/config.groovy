@@ -26,13 +26,13 @@
 package com.sonymobile.jenkins.plugins.gitlabauth.configuration
 
 def f = namespace("/lib/form")
- 
+
 f.section(title: "GitLab Authorization Configuration") {
-    f.entry(title: "Synchronization interval (in minutes)") {
-        f.number("default": "10", field: "periodDuration")
+    f.entry(title: "Synchronization interval", field: "periodDuration") {
+        f.textbox("default": GitLabAuthConfiguration.DEFAULT_PERIOD_DURATION)
     }
-    
-    f.entry(title: "Folder creation strategy") {
-        f.booleanRadio(field: "autoCreateFolders", "true": "Automatically", "false": "User")
+
+    f.entry(title: "Folder creation strategy", field: "autoCreateFolders") {
+        f.booleanRadio("true": "Automatically", "false": "User")
     }
 }
