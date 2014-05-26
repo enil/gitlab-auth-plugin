@@ -27,10 +27,8 @@ package com.sonymobile.jenkins.plugins.gitlabauth.configuration;
 
 import com.sonymobile.jenkins.plugins.gitlabauth.time.Interval;
 import hudson.Extension;
-import hudson.ExtensionList;
 import hudson.util.FormValidation;
 import jenkins.model.GlobalConfiguration;
-import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -78,7 +76,6 @@ public class GitLabAuthConfiguration extends GlobalConfiguration {
     @Override
     public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
         String periodDurationInput = formData.getString("periodDuration");
-
         try {
             periodDuration = Interval.parseInterval(periodDurationInput, DEFAULT_PERIOD_TIME_UNIT);
             autoCreateFolders = formData.getBoolean("autoCreateFolders");
@@ -111,8 +108,9 @@ public class GitLabAuthConfiguration extends GlobalConfiguration {
      *
      * @return the period duration interval
      */
-    public Interval getPeriodDuration() {
-        return periodDuration;
+    public static Interval getPeriodDuration() {
+        GitLabAuthConfiguration instance = getInstance();
+        return instance != null ? instance.periodDuration : DEFAULT_PERIOD_DURATION;
     }
 
     /**
@@ -123,8 +121,9 @@ public class GitLabAuthConfiguration extends GlobalConfiguration {
      *
      * @return true if folders should be created automatically
      */
-    public boolean getAutoCreateFolders() {
-        return autoCreateFolders;
+    public static boolean getAutoCreateFolders() {
+        GitLabAuthConfiguration instance = getInstance();
+        return instance != null ? instance.autoCreateFolders : false;
     }
 
     /**
@@ -133,9 +132,6 @@ public class GitLabAuthConfiguration extends GlobalConfiguration {
      * @return the instance or null if Jenkins misbehaves
      */
     public static GitLabAuthConfiguration getInstance() {
-        ExtensionList<GitLabAuthConfiguration> list = Jenkins.getInstance().getExtensionList(GitLabAuthConfiguration.class);
-
-        // return the singleton instance if available from the extension list
-        return (list != null && !list.isEmpty()) ? list.get(0) : null;
+        return GlobalConfiguration.all().get(GitLabAuthConfiguration.class);
     }
 }

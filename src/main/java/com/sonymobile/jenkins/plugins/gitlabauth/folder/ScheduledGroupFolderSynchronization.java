@@ -26,6 +26,7 @@
 package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
+import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfiguration;
 import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.configuration.GitLabAuthConfiguration;
@@ -34,6 +35,7 @@ import hudson.Extension;
 import hudson.model.AperiodicWork;
 
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -43,36 +45,14 @@ import java.util.logging.Logger;
  */
 @Extension
 public final class ScheduledGroupFolderSynchronization extends AperiodicWork {
-    /** The default duration between synchronizations. */
-    private static final Interval DEFAULT_PERIOD_DURATION = new Interval(10, TimeUnit.MINUTES);
-
     /** The interval between checking the configuration when not active. */
-    private static final Interval CONFIG_POLLING_INTERVAL = new Interval(1, TimeUnit.MINUTES);
+    private static final Interval CONFIG_POLLING_INTERVAL = new Interval(10, TimeUnit.MINUTES);
 
     /** The synchronizer creating folders from GitLab groups. */
     private static final Synchronizer synchronizer = new Synchronizer();
 
-    /** The duration between synchronizations. */
-    private Interval periodDuration;
-
     /** The logger for the class. */
-    private final Logger LOGGER = Logger.getLogger(ScheduledGroupFolderSynchronization.class.getName());
-
-    /**
-     * Creates a scheduled group folder synchronization with the default duration.
-     */
-    public ScheduledGroupFolderSynchronization() {
-        this(DEFAULT_PERIOD_DURATION);
-    }
-
-    /**
-     * Creates scheduled group folder synchronization.
-     *
-     * @param periodDuration the duration between synchronizations
-     */
-    public ScheduledGroupFolderSynchronization(Interval periodDuration) {
-        this.periodDuration = periodDuration;
-    }
+    private static final Logger LOGGER = Logger.getLogger(ScheduledGroupFolderSynchronization.class.getName());
 
     /**
      * Checks whether synchronization should be performed.
@@ -80,8 +60,7 @@ public final class ScheduledGroupFolderSynchronization extends AperiodicWork {
      * @return true if synchronization should be performed
      */
     public boolean isActive() {
-        GitLabAuthConfiguration configuration = GitLabAuthConfiguration.getInstance();
-        return configuration.getAutoCreateFolders();
+        return GitLabAuthConfiguration.getAutoCreateFolders();
     }
 
     /**
@@ -93,12 +72,10 @@ public final class ScheduledGroupFolderSynchronization extends AperiodicWork {
      * @throws GitLabApiException if the connection against GitLab failed
      */
     private boolean synchronize() throws GitLabApiException {
-        if (isActive()) {
-            // only try to synchronize if GitLab is configured
-            if (GitLabConfiguration.isApiConfigured()) {
-                synchronizer.synchronize();
-                return true;
-            }
+        // only try to synchronize if GitLab is configured
+        if (GitLabConfiguration.isApiConfigured()) {
+            synchronizer.synchronize();
+            return true;
         }
         return false;
     }
@@ -111,17 +88,22 @@ public final class ScheduledGroupFolderSynchronization extends AperiodicWork {
 
     @Override
     public AperiodicWork getNewInstance() {
-        return new ScheduledGroupFolderSynchronization(getPeriodDuration());
+        return new ScheduledGroupFolderSynchronization();
     }
 
     @Override
     protected void doAperiodicRun() {
         try {
-            if (!synchronize()) {
-                LOGGER.warning("Cannot synchronize GitLab folders: GitLab not configured. Retrying in " +
-                        periodDuration);
+            if (isActive()) {
+                if (synchronize()) {
+                    LOGGER.fine("Performed GitLab folder synchronization performed");
+                } else {
+                    LOGGER.warning("Cannot synchronize GitLab folders: GitLab not configured. Retrying in " +
+                            getPeriodDuration());
+                }
+            } else {
+                LOGGER.fine("Scheduled GitLab folder synchronization not active");
             }
-
         } catch (GitLabApiException e) {
             LOGGER.severe("Synchronization of GitLab folders failed: " + e.getMessage());
         }
@@ -134,10 +116,7 @@ public final class ScheduledGroupFolderSynchronization extends AperiodicWork {
      */
     private Interval getPeriodDuration() {
         if (isActive()) {
-            GitLabAuthConfiguration configuration = GitLabAuthConfiguration.getInstance();
-            if (configuration != null) {
-                return configuration.getPeriodDuration();
-            }
+            return GitLabAuthConfiguration.getPeriodDuration();
         }
         return CONFIG_POLLING_INTERVAL;
     }
