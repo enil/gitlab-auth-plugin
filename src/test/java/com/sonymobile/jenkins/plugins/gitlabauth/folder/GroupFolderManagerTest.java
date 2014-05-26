@@ -43,10 +43,12 @@ import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.GitLabMatchers.hasGroupId;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataCreators.expectNewFolderAuthorization;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataCreators.mockFolderAuthorization;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataCreators.mockGroupInfo;
@@ -60,7 +62,7 @@ import static org.easymock.EasyMock.expect;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
 import static org.powermock.api.easymock.PowerMock.mockStatic;
 import static org.powermock.api.easymock.PowerMock.replay;
@@ -131,16 +133,55 @@ public class GroupFolderManagerTest implements GroupFolderManager.ManagesGroupPr
                 freeStyleProject("item"));
         replay(itemGroup);
 
-        Map<Integer, GroupFolderInfo> existingFolders = folderManager.getFolders();
+        List<GroupFolderInfo> existingFolders = new ArrayList<GroupFolderInfo>(folderManager.getFolders());
 
         verify(itemGroup);
 
-        assertThat(existingFolders.size(), is(2));
-        assertThat("GitLab folder not matched", existingFolders, hasKey(1));
-        assertThat("GitLab folder not matched", existingFolders, hasKey(2));
+        assertThat(existingFolders, contains(hasGroupId(1), hasGroupId(2)));
+    }
 
-        assertThat(existingFolders.get(1).getGroupId(), is(1));
-        assertThat(existingFolders.get(2).getGroupId(), is(2));
+    /**
+     * Tests getting all the existing GitLab group folders.
+     */
+    @Test
+    public void getAllFolders() throws Exception {
+        // group1 and group2 are managed by the folder manager, group10 should still be included
+        addItems(
+                gitLabFolder(1, "Group 1", "group1"),
+                gitLabFolder(2, "Group 2", "group2"),
+                gitLabFolder(10, "Group 10", "group10"),
+                folder("folder"),
+                freeStyleProject("item"));
+        replay(itemGroup);
+
+        List<GroupFolderInfo> existingFolders = new ArrayList<GroupFolderInfo>(folderManager.getAllFolders());
+
+        verify(itemGroup);
+
+        assertThat(existingFolders, contains(hasGroupId(1), hasGroupId(2), hasGroupId(10)));
+    }
+
+    /**
+     * Tests getting available GitLab groups.
+     */
+    @Test
+    public void getAvailableGroups() throws Exception {
+        // existing groups are group1, group2 and group 10 (group 10 is not managed)
+        addGroups(
+                mockGroupInfo(1, "Group 1", "group1"),
+                mockGroupInfo(2, "Group 2", "group2"),
+                mockGroupInfo(10, "Group 10", "group10"));
+        // group1 is already created
+        addItems(
+                gitLabFolder(1, "Group 1", "group1"),
+                folder("folder"),
+                freeStyleProject("item"));
+        replay(itemGroup);
+
+        Collection<GitLabGroupInfo> availableGroups = folderManager.getAvailableGroups(groups);
+        assertThat(availableGroups, contains(hasGroupId(2)));
+
+        verify(itemGroup);
     }
 
     /**
@@ -175,7 +216,7 @@ public class GroupFolderManagerTest implements GroupFolderManager.ManagesGroupPr
 
         assertThat("name not set correctly", group2.getName(), is("group2"));
         assertThat("folder property not set", folderProperty, is(notNullValue()));
-        assertThat("group ID not set correctly", folderProperty.getGroupId(), is(2));
+        assertThat("group ID not set correctly", folderProperty, hasGroupId(2));
     }
 
     /**

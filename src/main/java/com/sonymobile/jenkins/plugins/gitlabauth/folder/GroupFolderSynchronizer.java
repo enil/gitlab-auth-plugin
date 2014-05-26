@@ -34,6 +34,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.ModifiableTopLevelItemGroup;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.logging.Logger;
 
 /**
@@ -76,7 +77,7 @@ public abstract class GroupFolderSynchronizer implements GroupFolderManager.Mana
      * @param groups the groups
      * @throws GitLabApiException if the connection against GitLab failed
      */
-    protected void synchronizeGroupFolders(Iterable<GitLabGroupInfo> groups) throws GitLabApiException {
+    protected void synchronizeGroupFolders(Collection<GitLabGroupInfo> groups) throws GitLabApiException {
         try {
             folderManager.createFolders(groups);
         } catch (ItemNameCollisionException e) {

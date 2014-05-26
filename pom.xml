@@ -38,7 +38,6 @@
 
   <dependencyManagement>
     <dependencies>
-      <!-- fixme: better solution? Dependency hell sucks!!! -->
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
@@ -61,7 +60,6 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <!-- fixme: newer version -->
       <version>14.0</version>
     </dependency>
     <dependency>

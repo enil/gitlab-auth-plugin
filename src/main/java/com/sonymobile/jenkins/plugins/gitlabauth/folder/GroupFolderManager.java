@@ -28,6 +28,7 @@ package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
+import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.GroupFolderInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
 import com.sonymobile.jenkins.plugins.gitlabauth.exceptions.ItemNameCollisionException;
@@ -37,6 +38,8 @@ import jenkins.model.Jenkins;
 import jenkins.model.ModifiableTopLevelItemGroup;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -111,13 +114,63 @@ public class GroupFolderManager {
     }
 
     /**
-     * Returns all included GitLab folders.
+     * Returns all included group folders.
      *
-     * @return a map of group IDs and folders
+     * @return the folders
      * @throws GitLabApiException if the connection against GitLab failed
      */
-    public synchronized Map<Integer, GroupFolderInfo> getFolders() throws GitLabApiException {
-        return filterGroupFoldersMap(getAllFolders());
+    public synchronized Collection<GroupFolderInfo> getFolders() throws GitLabApiException {
+        return filterGroupFoldersMap(getUnfilteredFolders()).values();
+    }
+
+    /**
+     * Returns all group folders.
+     *
+     * This returns all group folders without applying the filter.
+     *
+     * @return the folders
+     * @throws GitLabApiException if the connection against GitLab failed
+     */
+    public synchronized Collection<GroupFolderInfo> getAllFolders() throws GitLabApiException {
+        return getUnfilteredFolders().values();
+    }
+
+    /**
+     * Returns group without a group folder.
+     *
+     * @return the available groups
+     * @throws GitLabApiException if the connection against GitLab failed
+     */
+    public synchronized Collection<GitLabGroupInfo> getAvailableGroups()
+            throws GitLabApiException {
+        // get all available groups
+        return getAvailableGroups(GitLab.getGroups());
+    }
+
+    /**
+     * Returns group without a group folder.
+     *
+     * @param groups all groups
+     * @return the available groups
+     * @throws GitLabApiException if the connection against GitLab failed
+     */
+    public synchronized Collection<GitLabGroupInfo> getAvailableGroups(Collection<GitLabGroupInfo> groups)
+        throws GitLabApiException {
+        // filter excluded groups
+        Collection<GitLabGroupInfo> availableGroups = filterGroups(groups);
+
+        Map<Integer, GroupFolderInfo> folders = getUnfilteredFolders();
+        Iterator<GitLabGroupInfo> iterator = groups.iterator();
+
+        // remove groups having group folders
+        while (iterator.hasNext()) {
+            GitLabGroupInfo group = iterator.next();
+            if (folders.containsKey(group.getId())) {
+                iterator.remove();
+            }
+        }
+
+        return availableGroups;
     }
 
     /**
@@ -130,17 +183,17 @@ public class GroupFolderManager {
      * @throws ItemNameCollisionException if an item names for new folders already were in use
      * @throws IOException                if saving to persistent storage failed
      */
-    public synchronized void createFolders(Iterable<GitLabGroupInfo> groups)
+    public synchronized void createFolders(Collection<GitLabGroupInfo> groups)
             throws GitLabApiException, ItemNameCollisionException, IOException {
-        createSelectedFolders(filterGroups(groups));
+        createUnfilteredFolders(filterGroups(groups));
     }
 
     /**
-     * Gets all group folders.
+     * Gets all group folders without applying the filter.
      *
      * @return all group folders
      */
-    private Map<Integer, GroupFolderInfo> getAllFolders() {
+    private Map<Integer, GroupFolderInfo> getUnfilteredFolders() {
         Map<Integer, GroupFolderInfo> folders = new TreeMap<Integer, GroupFolderInfo>();
         for (TopLevelItem item : itemGroup.getItems()) {
             // check if the item is a group folder
@@ -153,16 +206,16 @@ public class GroupFolderManager {
     }
 
     /**
-     * Creates group folders.
+     * Creates group folders without applying the filter.
      *
      * This is used to create the included folders after filtering.
      *
      * @param groups the folders
      */
-    private void createSelectedFolders(Iterable<GitLabGroupInfo> groups)
+    private void createUnfilteredFolders(Collection<GitLabGroupInfo> groups)
             throws ItemNameCollisionException, IOException {
         // get existing group folders
-        Map<Integer, GroupFolderInfo> existingFolders = getAllFolders();
+        Map<Integer, GroupFolderInfo> existingFolders = getUnfilteredFolders();
 
         // groups which item names collide with existing items
         List<String> collidedGroupPaths = new LinkedList<String>();
@@ -211,7 +264,7 @@ public class GroupFolderManager {
      * @return the groups
      * @throws GitLabApiException if the connection against GitLab failed
      */
-    private Iterable<GitLabGroupInfo> filterGroups(Iterable<GitLabGroupInfo> groups)
+    private Collection<GitLabGroupInfo> filterGroups(Collection<GitLabGroupInfo> groups)
             throws GitLabApiException {
         Iterator<GitLabGroupInfo> iterator = groups.iterator();
 
@@ -236,6 +289,23 @@ public class GroupFolderManager {
             if (!managesGroupFolder(iterator.next())) { iterator.remove(); }
         }
         return groupFolders;
+    }
+
+    /**
+     * Extracts the groups from a collection of group folders.
+     *
+     * @param groupFolders the group folders
+     * @return the groups
+     * @throws GitLabApiException if the connection against GitLab failed
+     */
+    private Collection<GitLabGroupInfo> getGroupsFromFolders(Collection<GroupFolderInfo> groupFolders)
+            throws GitLabApiException {
+        List<GitLabGroupInfo> groups = new ArrayList<GitLabGroupInfo>();
+
+        for (GroupFolderInfo groupFolder : groupFolders) {
+            groups.add(groupFolder.getGroup());
+        }
+        return groups;
     }
 
     /**
