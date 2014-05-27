@@ -105,7 +105,7 @@ public class GroupFolderSynchronizerTest {
 
         replay(itemGroup);
 
-        synchronizer.synchronizeGroupFolders(groups);
+        synchronizer.synchronize();
 
         // verify that itemGroup#createProject was called
         verify(itemGroup);
