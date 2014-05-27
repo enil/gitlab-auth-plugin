@@ -25,6 +25,16 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth;
 
+import java.util.logging.Logger;
+
+import jenkins.model.Jenkins;
+
+import org.acegisecurity.Authentication;
+
+import com.sonymobile.gitlab.exceptions.GitLabApiException;
+import com.sonymobile.gitlab.model.GitLabUserInfo;
+import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
+
 import hudson.Extension;
 import hudson.model.User;
 import hudson.model.UserProperty;
@@ -37,52 +47,68 @@ import hudson.model.UserPropertyDescriptor;
  * @author Andreas Alanko
  */
 
-public class GitLabUserInformation extends UserProperty {
-    /** the logged in user object with GitLab information */
-    private User mUser;
+public class GitLabUserProperty extends UserProperty {
+    /** The GitLab user associated with this object. */
+    private GitLabUserInfo user;
 
     /**
-     * Creates a new object for the given user. 
-     * The constructor gets the GitLab information for the given user.
+     * Creates a new property for the given user. 
      * 
-     * @param user the logged in user
+     * @param user the user
      */
-    public GitLabUserInformation(User user) {
-        //TODO: Get GitLabUser object with information
-        this.mUser = user;
+    public GitLabUserProperty(GitLabUserInfo user) {
+        this.user = user;
+    }
+    
+    public GitLabUserProperty() {
+        this.user = null;
     }
 
     /**
-     * Gets the GitLab username of the logged in user.
+     * Gets the GitLab username for the user associated to
+     * this property.
      * 
      * @return the username or "Anonymous" if the user does not exist.
      */
     public String getUsername() {
-        return (mUser != null) ? mUser.getDisplayName() : "Anonymous";
+        return (user != null) ? user.getUsername() : "Anonymous";
     }
 
     /**
-     * Gets the GitLab full name of the logged in user.
+     * Gets the GitLab full name for the user associated to
+     * this property.
      * 
      * @return the full name or the username if a full name is not set.
      */
     public String getFullname() {
-        return (mUser != null) ? mUser.getFullName() : this.getUsername();
+        return (user != null) ? user.getName() : this.getUsername();
     }
 
     /**
-     * Gets the GitLab email address of the logged in user.
+     * Gets the GitLab email address for the user associated to
+     * this property.
      * 
-     * @return the email adress
+     * @return the email address or "N/A" if no email is available
      */
     public String getEmail() {
-        //TODO
-        return "Not available";
+        return (user != null) ? user.getEmail() : "N/A";
+    }
+    
+    /**
+     * Gets the GitLab user ID for the user associated to
+     * this property.
+     * 
+     * @return the user ID or -1 if something went wrong
+     */
+    public int getUserId() {
+        return (user != null) ? user.getId() : -1;
     }
 
     @Extension
     public static final class DescriptorImpl extends UserPropertyDescriptor {
-
+        /** Logger for this class. */
+        private final transient Logger LOGGER = Logger.getLogger(GitLabUserProperty.class.getName());
+        
         /**
          * Gets the display name for the configuration page.
          * 
@@ -99,13 +125,25 @@ public class GitLabUserInformation extends UserProperty {
          */
         @Override
         public UserProperty newInstance(User user) {
-            return new GitLabUserInformation(user);
+            Authentication auth = Jenkins.getAuthentication();
+            
+            if (auth instanceof GitLabUserDetails) {
+                GitLabUserInfo gitLabUser;
+                try {
+                    gitLabUser = GitLab.getUser(((GitLabUserDetails) auth.getPrincipal()).getId());
+                    return new GitLabUserProperty(gitLabUser);
+                } catch (GitLabApiException e) {
+                    LOGGER.warning(e.getMessage());
+                }
+            }
+            return new GitLabUserProperty();
         }
 
         /**
-         * Check to see if the UserProperty is enabled.
+         * Check to see if the user property is enabled.
          * 
-         * This is set to not be enabled because we don't want to enable any configuration and only display user information from GitLab.
+         * This is not enabled because no configuration should be done
+         * and only information should be displayed.
          * 
          * @return true if the plugin is enabled.
          */

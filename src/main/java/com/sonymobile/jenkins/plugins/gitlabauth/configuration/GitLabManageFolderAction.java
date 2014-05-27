@@ -43,9 +43,9 @@ import org.kohsuke.stapler.StaplerResponse;
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
-import com.sonymobile.jenkins.plugins.gitlabauth.GroupFolderInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabAuthorization;
 import com.sonymobile.jenkins.plugins.gitlabauth.exceptions.ItemNameCollisionException;
+import com.sonymobile.jenkins.plugins.gitlabauth.folder.GroupFolderInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.folder.UserCreatedGroupFolder;
 import com.sonymobile.jenkins.plugins.gitlabauth.security.GitLabUserDetails;
 

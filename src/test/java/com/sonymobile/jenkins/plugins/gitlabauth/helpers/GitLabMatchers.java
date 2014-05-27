@@ -26,8 +26,9 @@
 package com.sonymobile.jenkins.plugins.gitlabauth.helpers;
 
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
-import com.sonymobile.jenkins.plugins.gitlabauth.GroupFolderInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
+import com.sonymobile.jenkins.plugins.gitlabauth.folder.GroupFolderInfo;
+
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 

@@ -29,9 +29,9 @@ import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
-import com.sonymobile.jenkins.plugins.gitlabauth.GroupFolderInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
 import com.sonymobile.jenkins.plugins.gitlabauth.exceptions.ItemNameCollisionException;
+
 import hudson.model.TopLevelItem;
 import hudson.model.TopLevelItemDescriptor;
 import jenkins.model.Jenkins;

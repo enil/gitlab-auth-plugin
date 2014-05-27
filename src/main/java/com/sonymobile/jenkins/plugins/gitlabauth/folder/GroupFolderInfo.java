@@ -23,12 +23,13 @@
  * THE SOFTWARE.
  */
 
-package com.sonymobile.jenkins.plugins.gitlabauth;
+package com.sonymobile.jenkins.plugins.gitlabauth.folder;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
+import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
 
 import hudson.model.TopLevelItem;

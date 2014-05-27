@@ -42,7 +42,6 @@ import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabAccessLevel;
 import com.sonymobile.gitlab.model.GitLabGroupInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.GitLab;
-import com.sonymobile.jenkins.plugins.gitlabauth.GroupFolderInfo;
 import com.sonymobile.jenkins.plugins.gitlabauth.authorization.GitLabFolderAuthorization;
 import com.sonymobile.jenkins.plugins.gitlabauth.exceptions.ItemNameCollisionException;
 
@@ -86,8 +85,6 @@ public class UserCreatedGroupFolder {
     public static List<GroupFolderInfo> getNonExistingFolders(int userId) throws GitLabApiException {
         List<GitLabGroupInfo> userGroups = GitLab.getGroupsAsUser(userId);
         List<GroupFolderInfo> groups = new ArrayList<GroupFolderInfo>();
-        
-        System.out.println("userGroupSize " + userGroups.size());
         
         for (GitLabGroupInfo group : userGroups) {
             if (GitLab.isGroupOwner(userId, group.getId())) {
