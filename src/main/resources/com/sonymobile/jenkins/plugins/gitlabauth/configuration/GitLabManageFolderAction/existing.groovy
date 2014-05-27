@@ -28,35 +28,53 @@ package com.sonymobile.jenkins.plugins.gitlabauth.configuration.GitLabManageFold
 def l = namespace("/lib/layout")
 def f = namespace("/lib/form")
 def st = namespace("jelly:stapler")
- 
-l.layout(title: "Existing GitLag Folders", permission: app.READ, norefresh: "true") {
+
+def existingFolders = my.existingFolders
+
+l.layout(title: "Existing GitLab Folders", permission: app.READ, norefresh: "true") {
     st.include(page: "sidepanel.groovy")
     l.main_panel() {
         h1 {
             text("Existing GitLab Folders");
         }
-        table(id: "Test", "class": "sortable pane bigtable") {
-            tr(style: "text-align:left") {
-                th(width: "400px") {
-                    text("Group name")
+        
+        if (existingFolders.isEmpty()) {
+            text("There are no folders created that are linked with a GitLab group.")
+        } else {
+            table(id: "Test", "class": "sortable pane bigtable") {
+                tr(style: "text-align:left") {
+                    th(width: "400px") {
+                        text("Group name")
+                    }
+                    th(width: "100px") {
+                        text("Group role")
+                    }
+                    th(width: "400px") {
+                        text("Group path")
+                    }
+                    th {
+                        text("Group URL")
+                    }
                 }
-                th(width: "100px") {
-                    text("Group role")
-                }
-                th {
-                    text("Group path")
-                }
-            }
-            tr {
-                td {
-                    img(src: imagesURL+"/32x32/folder.png", width: "32px", height: "32px", style: "padding-right: 10px")
-                    text("Test group")
-                }
-                td {
-                    text("owner")
-                }
-                td {
-                    text("testgroup")
+                
+                existingFolders.each { group ->
+                    tr {
+                        td {
+                            img(src: imagesURL+"/32x32/folder.png", width: "32px", height: "32px", style: "padding-right: 10px")
+                            text(group.groupName)
+                        }
+                        td {
+                            text(my.getGitLabAccessLevel(group.groupId))
+                        }
+                        td {
+                            text(group.groupPath)
+                        }
+                        td {
+                            a(href: group.groupUrl, target: "_blank") {
+                                text(group.groupUrl)
+                            }
+                        }
+                    }
                 }
             }
         }

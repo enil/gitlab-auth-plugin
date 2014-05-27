@@ -29,46 +29,63 @@ def l = namespace("/lib/layout")
 def f = namespace("/lib/form")
 def st = namespace("jelly:stapler")
 
+def nonExistingFolders = my.nonExistingFolders
+
 l.layout(title: "Create a new GitLab Folder", permission: app.READ, norefresh: "true") {
     st.include(page: "sidepanel.groovy")
     l.main_panel() {
         h1 {
             text("Create a new GitLab Folder");
         }
-        form(method: "POST", name: "createFolders", action: "createFolders") {
-            table(id: "Test", "class": "sortable pane bigtable") {
-                tr(style: "text-align:left") {
-                    th(width: "10px")
-                    
-                    th(width: "400px") {
-                        text("Group name")
+        
+        if (nonExistingFolders.isEmpty()) {
+            text("There are no folders that can be created.")
+        } else {
+            form(method: "POST", name: "createFolders", action: "createFolders") {
+                table(id: "Test", "class": "sortable pane bigtable") {
+                    tr(style: "text-align:left") {
+                        th(width: "10px")
+                        
+                        th(width: "400px") {
+                            text("Group name")
+                        }
+                        th(width: "100px") {
+                            text("Group role")
+                        }
+                        th {
+                            text("Group path")
+                        }
+                        th(width: "400px") {
+                            text("Group URL")
+                        }
                     }
-                    th(width: "100px") {
-                        text("Group role")
-                    }
-                    th {
-                        text("Group path")
+                    nonExistingFolders.each { group ->
+                        tr {
+                            td {
+                                input(type: "checkbox", name: group.groupId)
+                            }
+                            td {
+                                img(src: imagesURL+"/32x32/folder.png", width: "32px", height: "32px", style: "padding-right: 10px")
+                                text(group.groupName)
+                            }
+                            td {
+                                text(my.getGitLabAccessLevel(group.groupId))
+                            }
+                            td {
+                                text(group.groupPath)
+                            }
+                            td {
+                                a(href: group.groupUrl, target: "_blank") {
+                                    text(group.groupUrl)
+                                }
+                            }
+                        }
                     }
                 }
-                tr {
-                    td {
-                        input(type: "checkbox", name: "2")
-                    }
-                    td {
-                        img(src: imagesURL+"/32x32/folder.png", width: "32px", height: "32px", style: "padding-right: 10px")
-                        text("Other test group")
-                    }
-                    td {
-                        text("owner")
-                    }
-                    td {
-                        text("othertestgroup")
-                    }
+                div("class": "bottom-sticker-edge")
+                div("class": "bottom-sticker-inner") {
+                    input(type: "submit", value: "Create marked folders")
                 }
-            }
-            div("class": "bottom-sticker-edge")
-            div("class": "bottom-sticker-inner") {
-                input(type: "submit", value: "Create marked folders")
             }
         }
     }

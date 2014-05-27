@@ -4,7 +4,7 @@ def f = namespace("/lib/form")
 def j = namespace("jelly:core")
 def st = namespace("jelly:stapler")
 
-def acl = instance.ACL
+def acl = instance?.ACL
 
 link(rel: "stylesheet", href: rootURL+"/plugin/gitlab-auth/table.css", type: "text/css")
 script(type: "text/javascript", src: rootURL+"/plugin/gitlab-auth/authorization.matrix.js")

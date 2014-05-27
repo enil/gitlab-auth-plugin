@@ -44,7 +44,7 @@ import java.util.logging.Logger;
  */
 public abstract class GroupFolderSynchronizer implements GroupFolderManager.ManagesGroupPredicate {
     /** The folder manager used to fetch and create group folders. */
-    private final GroupFolderManager folderManager;
+    protected final GroupFolderManager folderManager;
 
     /** The logger for the class. */
     protected final Logger LOGGER = Logger.getLogger(GroupFolderSynchronizer.class.getName());

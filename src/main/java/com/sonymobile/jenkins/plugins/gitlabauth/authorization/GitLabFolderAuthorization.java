@@ -37,12 +37,14 @@ import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabGrantedPermissions;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.GitLabPermissionIdentity.IdentityType;
 import com.sonymobile.jenkins.plugins.gitlabauth.acl.JenkinsAccessLevel;
+
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.security.ACL;
 import hudson.security.Permission;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
+
 import org.kohsuke.stapler.StaplerRequest;
 
 import java.util.List;
@@ -147,6 +149,27 @@ public class GitLabFolderAuthorization extends FolderProperty<Folder> {
      */
     public String getFolderName() {
         return owner.getName();
+    }
+    
+    /**
+     * Gets the {@link Folder} object associated to this property.
+     * 
+     * @return a {@link Folder}
+     */
+    public Folder getFolder() {
+        return owner;
+    }
+    
+    /**
+     * Gets the {@link GitLabFolderAuthorization} property for the given folder.
+     * 
+     * Will return null if no such property was found.
+     * 
+     * @param folder the folder
+     * @return the {@link GitLabFolderAuthorization} property
+     */
+    public static GitLabFolderAuthorization getFolderProperty(Folder folder) {
+        return folder.getProperties().get(GitLabFolderAuthorization.class);
     }
 
     /**
