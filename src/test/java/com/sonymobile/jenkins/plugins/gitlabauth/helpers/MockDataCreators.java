@@ -62,6 +62,31 @@ public class MockDataCreators {
     }
 
     /**
+     * Mocks a folder authorization property object.
+     *
+     * @param groupId the group ID
+     * @param name    the group name
+     * @param path    the path for the group
+     * @return a folder property object
+     */
+    public static GitLabFolderAuthorization mockFolderAuthorization(int groupId, String name, String path) {
+        try {
+            GitLabFolderAuthorization folderAuthorization = createMock(GitLabFolderAuthorization.class);
+            expect(folderAuthorization.getGroupId()).andReturn(groupId).anyTimes();
+            expect(folderAuthorization.getFolderName()).andReturn(path).anyTimes();
+            expect(folderAuthorization.getGroupName()).andReturn(name).anyTimes();
+            expect(folderAuthorization.getGroupPath()).andReturn(path).anyTimes();
+            expect(folderAuthorization.getGroup()).andReturn(mockGroupInfo(groupId, name, path)).anyTimes();
+            replay(folderAuthorization);
+
+            return folderAuthorization;
+        } catch (Exception e) {
+            // not expected to throw an exception, rethrow as runtime exception
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
      * Mocks a GitLab group info object.
      *
      * @param groupId the group ID

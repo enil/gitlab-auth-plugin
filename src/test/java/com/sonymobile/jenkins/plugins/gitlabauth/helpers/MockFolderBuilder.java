@@ -111,7 +111,7 @@ public class MockFolderBuilder extends MockTopLevelItemBuilder<Folder, MockFolde
 
         // mock the property list
         DescribableList propertyList = createMock(DescribableList.class);
-        expect(folder.getProperties()).andReturn(propertyList);
+        expect(folder.getProperties()).andReturn(propertyList).anyTimes();
 
         // mock adding properties
         folder.addProperty(anyObject(FolderProperty.class));
@@ -120,14 +120,14 @@ public class MockFolderBuilder extends MockTopLevelItemBuilder<Folder, MockFolde
                 addProperty((FolderProperty)getCurrentArguments()[0]);
                 return null;
             }
-        });
+        }).anyTimes();
 
         // mock getting properties
         expect(propertyList.get(anyObject(Class.class))).andAnswer(new IAnswer<Describable>() {
             public Describable answer() throws Throwable {
                 return getProperty((Class)getCurrentArguments()[0]);
             }
-        });
+        }).anyTimes();
 
         replay(propertyList);
 

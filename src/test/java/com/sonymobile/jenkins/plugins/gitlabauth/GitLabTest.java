@@ -38,13 +38,13 @@ import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.powermock.api.easymock.PowerMock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataCreators.mockGroupInfo;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataLoaders.loadAdminUser;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataLoaders.loadGroupMembers;
 import static com.sonymobile.jenkins.plugins.gitlabauth.helpers.MockDataLoaders.loadGroups;
@@ -97,7 +97,7 @@ public class GitLabTest {
         // mock GitLabConfiguration to return the mocked GitLab API Client
         mockStatic(GitLabConfiguration.class);
         expect(GitLabConfiguration.getApiClient()).andReturn(mockApiClient).anyTimes();
-        PowerMock.replay(GitLabConfiguration.class);
+        replay(GitLabConfiguration.class);
 
         // create ticker for testing cache
         mockTicker = new MockTicker();
@@ -396,6 +396,17 @@ public class GitLabTest {
         assertThat(GitLab.getAccessLevelInGroup(/* userId */ 1, /* groupId */ 1), is(GitLabAccessLevel.DEVELOPER));
         assertThat(GitLab.getAccessLevelInGroup(/* userId */ 2, /* groupId */ 1), is(GitLabAccessLevel.GUEST));
         assertThat(GitLab.getAccessLevelInGroup(/* userId */ 1000, /* groupId */ 1), is(GitLabAccessLevel.NONE));
+
+        verify(mockApiClient);
+    }
+
+    @Test
+    public void getUrlForGroup() throws Exception {
+        expect(mockApiClient.getHost()).andReturn("http://example.com");
+        replay(mockApiClient);
+
+        GitLabGroupInfo group = mockGroupInfo(1, "Group Name", "groupname");
+        assertThat(GitLab.getUrlForGroup(group), is("http://example.com/groups/groupname"));
 
         verify(mockApiClient);
     }
