@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  */
 
-package com.sonymobile.jenkins.plugins.gitlabauth.configuration
+package com.sonymobile.jenkins.plugins.gitlabauth.configuration.GitLabAuthConfiguration
 
 def f = namespace("/lib/form")
 
