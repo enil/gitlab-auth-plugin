@@ -25,6 +25,8 @@
 
 package com.sonymobile.jenkins.plugins.gitlabauth.configuration.GitLabAuthConfiguration
 
+import com.sonymobile.jenkins.plugins.gitlabauth.configuration.GitLabAuthConfiguration
+
 def f = namespace("/lib/form")
 
 f.section(title: "GitLab Authorization Configuration") {
