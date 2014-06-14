@@ -11,26 +11,45 @@
   <version>0.3</version>
   <packaging>hpi</packaging>
   <name>GitLab Auth</name>
+  <url>http://wiki.jenkins-ci.org/display/JENKINS/GitLab+Auth</url>
+  <description>This plugin provides authentication for GitLab users.</description>
 
   <licenses>
     <license>
       <name>MIT</name>
-      <comments>Copyright (c) 2014 Andreas Alanko, Emil Nilsson, Sony Mobile Communications AB. All rights reserved.</comments>
+      <comments>
+        Copyright (c) 2014 Andreas Alanko, Emil Nilsson, Sony Mobile Communications AB. All rights reserved.
+      </comments>
     </license>
   </licenses>
 
   <developers>
     <developer>
+      <id>eonilsson</id>
       <name>Emil Nilsson</name>
       <email>emil.nilsson@sonymobile.com</email>
       <organization>Sony Mobile Communications</organization>
     </developer>
     <developer>
+      <id>aalanko</id>
       <name>Andreas Alanko</name>
       <email>andreas.alanko@sonymobile.com</email>
       <organization>Sony Mobile Communications</organization>
     </developer>
   </developers>
+
+  <scm>
+    <connection>scm:git:ssh://github.com/jenkinsci/gitlab-auth-plugin.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/gitlab-auth-plugin.git</developerConnection>
+    <url>https://github.com/jenkinsci/gitlab-auth-plugin</url>
+  </scm>
+
+  <distributionManagement>
+    <repository>
+      <id>maven.jenkins-ci.org</id>
+      <url>http://maven.jenkins-ci.org:8081/content/repositories/releases/</url>
+    </repository>
+  </distributionManagement>
 
   <properties>
     <powermock.version>1.5.4</powermock.version>
