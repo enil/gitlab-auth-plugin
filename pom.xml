@@ -6,7 +6,7 @@
     <version>1.554.1</version>
   </parent>
 
-  <groupId>com.sonymobile.jenkins.plugins</groupId>
+  <groupId>com.sonymobile.jenkins.plugins.gitlab</groupId>
   <artifactId>gitlab-auth</artifactId>
   <version>0.3</version>
   <packaging>hpi</packaging>
