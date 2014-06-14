@@ -8,7 +8,7 @@
 
   <groupId>com.sonymobile.jenkins.plugins</groupId>
   <artifactId>gitlab-auth</artifactId>
-  <version>0.3-SNAPSHOT</version>
+  <version>0.3</version>
   <packaging>hpi</packaging>
   <name>GitLab Auth</name>
 
@@ -50,7 +50,7 @@
     <dependency>
       <groupId>com.sonymobile.jenkins.plugins</groupId>
       <artifactId>gitlab-api</artifactId>
-      <version>0.3-SNAPSHOT</version>
+      <version>0.3</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
