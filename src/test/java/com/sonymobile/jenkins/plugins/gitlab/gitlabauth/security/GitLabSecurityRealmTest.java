@@ -27,7 +27,7 @@ package com.sonymobile.jenkins.plugins.gitlab.gitlabauth.security;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfiguration;
+import com.sonymobile.jenkins.plugins.gitlab.gitlabapi.GitLabConfiguration;
 
 import hudson.security.SecurityRealm;
 import jenkins.model.Jenkins;

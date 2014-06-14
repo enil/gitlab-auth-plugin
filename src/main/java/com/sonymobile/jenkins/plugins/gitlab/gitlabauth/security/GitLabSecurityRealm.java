@@ -29,8 +29,8 @@ import com.sonymobile.gitlab.api.GitLabApiClient;
 import com.sonymobile.gitlab.exceptions.ApiConnectionFailureException;
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
 import com.sonymobile.gitlab.model.GitLabSessionInfo;
-import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfiguration;
-import com.sonymobile.jenkins.plugins.gitlabapi.exception.GitLabConfigurationException;
+import com.sonymobile.jenkins.plugins.gitlab.gitlabapi.GitLabConfiguration;
+import com.sonymobile.jenkins.plugins.gitlab.gitlabapi.exception.GitLabConfigurationException;
 
 import hudson.Extension;
 import hudson.model.Descriptor;

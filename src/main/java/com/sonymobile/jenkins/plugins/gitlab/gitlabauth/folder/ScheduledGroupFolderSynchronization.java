@@ -26,7 +26,7 @@
 package com.sonymobile.jenkins.plugins.gitlab.gitlabauth.folder;
 
 import com.sonymobile.gitlab.exceptions.GitLabApiException;
-import com.sonymobile.jenkins.plugins.gitlabapi.GitLabConfiguration;
+import com.sonymobile.jenkins.plugins.gitlab.gitlabapi.GitLabConfiguration;
 import com.sonymobile.jenkins.plugins.gitlab.gitlabauth.GitLab;
 import com.sonymobile.jenkins.plugins.gitlab.gitlabauth.configuration.GitLabAuthConfiguration;
 import com.sonymobile.jenkins.plugins.gitlab.gitlabauth.time.Interval;
