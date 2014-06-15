@@ -38,7 +38,6 @@ import java.util.concurrent.TimeUnit;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
- * fixme: periods
  * Configuration page used to configure settings such as
  * period duration and if folders should be created automatically
  * or manually by users.
